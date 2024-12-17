@@ -6,7 +6,8 @@ from typing import Generator
 import sys
 from datetime import datetime
 
-from engine import REGEX_IDENTIFIER, MACRO_ARG_SEPARATOR, Macro
+from engine import Macro
+from utils import *
 
 class Directive(ABC):
     # arg regex (\s+(.+))?
@@ -20,10 +21,10 @@ class IncludeDirective(Directive):
     trigger_on = "include"
 
     def handle(self, line, engine):
-        m = re.match(r'^#include \"(.+?)\"$', line)
+        m = re.match(rf'^include\s+{REGEX_GROUP_QUOTED}$', line)
         assert m, "malformed"
         
-        filepath = m.group(1)
+        filepath = str_unescape(m.group(1))
 
         assert engine.current_file
         
@@ -42,20 +43,21 @@ class SectionDirective(Directive):
     trigger_on = "section"
 
     def handle(self, line, engine):
-        m = re.match(r'^#section \"(.+?)\"$', line)
+        m = re.match(rf'^section\s+{REGEX_GROUP_QUOTED}$', line)
         assert m, "malformed"
 
-        section_name = m.group(1)
+        section_name = str_unescape(m.group(1))
         
         engine.sectionstack.append(section_name)
 
         engine.section_counters.append(1)
         
         print("hardcoded format")
-        return "#" * len(engine.sectionstack) + f" {'.'.join([str(n) for n in engine.section_counters[0:-1]])}&nbsp;&nbsp;&nbsp;<strong>{section_name}</strong>\n"
+        return "#" * len(engine.sectionstack) + f" {section_name}\n"
+        #return "#" * len(engine.sectionstack) + f" {'.'.join([str(n) for n in engine.section_counters[0:-1]])}&nbsp;&nbsp;&nbsp;<strong>{section_name}</strong>\n"
 
 class EndSectionDirective(Directive):
-    trigger_on = "endsection"
+    trigger_on = "endsect"
 
     def handle(self, line, engine):
         assert len(engine.sectionstack) > 0, "no section to end"
@@ -70,11 +72,11 @@ class CopyDirective(Directive):
     trigger_on = "copy"
 
     def handle(self, line, engine):
-        m = re.match(r'^#copy \"(.+?)\" \"(.+?)\"$', line)
+        m = re.match(rf'^copy\s+{REGEX_GROUP_QUOTED}\s+{REGEX_GROUP_QUOTED}$', line)
         assert m, "malformed"
 
-        what_file = m.group(1)
-        to_dir = m.group(2)
+        what_file = str_unescape(m.group(1))
+        to_dir = str_unescape(m.group(2))
 
         src_file = os.path.join(os.path.dirname(engine.current_file), what_file)
         assert os.path.isfile(src_file), f"file {src_file} does not exist"
@@ -99,11 +101,11 @@ class SetDirective(Directive):
     trigger_on = "set"
     
     def handle(self, line, engine):
-        m = re.match(rf'^#set ({REGEX_IDENTIFIER}+) \"(.*?)\"$', line)
+        m = re.match(rf'^set\s+{REGEX_GROUP_IDENTIFIER}\s+(?:{REGEX_GROUP_QUOTED}|{REGEX_GROUP_NUMBER})', line) # $ is buggy
         assert m, "malformed"
 
         variable_name = m.group(1)
-        variable_value = m.group(2)
+        variable_value = str_unescape(m.group(2) or m.group(3) or "")
 
         engine.variables[variable_name] = variable_value
 
@@ -111,7 +113,7 @@ class IncrementDirective(Directive):
     trigger_on = "increment"
 
     def handle(self, line, engine):
-        m = re.match(rf'^#increment ({REGEX_IDENTIFIER}+) (-?\d+)$', line)
+        m = re.match(rf'^increment\s+{REGEX_GROUP_IDENTIFIER}\s+{REGEX_GROUP_NUMBER}$', line)
         assert m, "malformed"
 
         variable_name = m.group(1)
@@ -128,7 +130,7 @@ class DefineDirective(Directive):
     trigger_on = "define"
 
     def handle(self, line, engine):
-        m = re.match(rf'^#define ({REGEX_IDENTIFIER}+)(\(\s*{REGEX_IDENTIFIER}+\s*({MACRO_ARG_SEPARATOR}\s*{REGEX_IDENTIFIER}+\s*)*\))?', line)
+        m = re.match(rf'^define\s+{REGEX_GROUP_IDENTIFIER}(\(\s*{REGEX_IDENTIFIER}\s*({MACRO_ARG_SEPARATOR}\s*{REGEX_IDENTIFIER}\s*)*\))?$', line)
         assert m, "malformed"
 
         macro_name = m.group(1)
@@ -144,17 +146,63 @@ class DefineDirective(Directive):
             m.params = [x.strip() for x in macro_params.strip("()").split(MACRO_ARG_SEPARATOR)]
         
         for macro_line in engine.consume():
-            if macro_line.startswith("#enddefine"):
+            if macro_line.startswith("#enddef"):
                 break
             m.body += macro_line
         else:
             assert False, "unended macro"
         engine.macros[macro_name] = m
 
+class IfDirective(Directive):
+    trigger_on = "if"
+
+    def handle(self, line, engine):
+        m = re.match(rf'^if\s+{REGEX_GROUP_IDENTIFIER}$', line)
+        assert m, "malformed"
+
+        variable_name = m.group(1)
+        found_else = False
+        
+        def eval_variable(vname):
+            return vname in engine.variables and engine.variables[vname] and (int(engine.variables[vname]) if engine.variables[vname].lstrip('-').isdigit() else engine.variables[vname])
+
+        should_feed = True if eval_variable(variable_name) else None
+        for if_line in engine.consume():
+            if if_line.startswith("#endif"):
+                break
+
+            if if_line.startswith("#elif"):
+                if should_feed == False:
+                    continue;
+
+                m = re.match(rf'^#elif\s+{REGEX_GROUP_IDENTIFIER}$', if_line)
+                assert m, "malformed"
+
+                variable_name = m.group(1)
+                should_feed = True if eval_variable(variable_name) else (None if should_feed is None else False)
+
+                continue
+
+            if if_line.startswith("#else"):
+                assert not found_else, "multiple else statements"
+                found_else = True
+
+                if should_feed == False:
+                    continue
+                
+                should_feed = should_feed is None
+                
+                continue
+
+            if should_feed:
+                engine.feed(if_line);
+        else:
+            assert False, "unended if"
+
 class WarningDirective(Directive):
     trigger_on = "warning"
 
     def handle(self, line, engine):
-        m = re.match(r'^#warning \"(.+?)\"$', line)
+        m = re.match(rf'^warning\s+{REGEX_GROUP_QUOTED}$', line)
         assert m, "malformed"
-        engine.log_warning(m.group(1))
+        engine.log_warning(str_unescape(m.group(1)))

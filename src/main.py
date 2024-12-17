@@ -1,3 +1,17 @@
+"""
+                                                             ™
+▀███▀   ▀██▀                 ███▀▀██▀▀███       ▀███▀   ▀██▀ 
+  ███   ▄█                   █▀   ██   ▀█         ███▄  ▄█   
+   ███ ▄█   ▄█▀██▄ ▀████████▄     ██      ▄▄█▀██   ▀██▄█▀    
+    ████   ██   ██   ██   ▀██     ██     ▄█▀   ██    ███     
+     ██     ▄█████   ██    ██     ██     ██▀▀▀▀▀▀  ▄█▀▀██▄   
+     ██    ██   ██   ██   ▄██     ██     ██▄    ▄ ▄█   ▀██▄  
+   ▄████▄  ▀████▀██▄ ██████▀    ▄████▄    ▀█████▀██▄▄  ▄▄███▄
+                     ██                                      
+                   ▄████▄                                    
+The Markdow Preprocessor
+"""
+
 # TODO: simpler header indents
 # TODO: header format
 
@@ -8,6 +22,7 @@ from io import TextIOWrapper, StringIO
 from typing import Generator
 import sys
 from datetime import datetime
+import argparse
 
 import colorama
 
@@ -144,19 +159,27 @@ def render(source_file, dir_output):
         raise Exception("pisa error")
 
 def main():
-    print("__   _ _____ _    _ _____  ____      _____  ___  _   _ ____ _   _ ___ __   _  ____      _____ _____ _   _")
-    print("| \\  | |____  \\  /  |____ |___/        |   |   | |   | |    |___|  |  | \\  | |  __        |   |____  \\_/ ")
-    print("|  \\_| |____   \\/   |____ |  \\_        |   |___| |___| |___ |   | _|_ |  \\_| |___|        |   |____ _/ \\_")
-    print("                                                                                                         ")
+    print("░▀▄▀▒▄▀▄▒█▀▄░▀█▀▒██▀░▀▄▀ ™")
+    print("░▒█▒░█▀█░█▀▒░▒█▒░█▄▄░█▒█")
 
-    out_dir = "./out"
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("input")
+    parser.add_argument("-o", "--output", default="./out")
+    #parser.add_argument("--target")
+
+    args = parser.parse_args()
+
+    assert os.path.isfile(args.input)
+    assert os.path.isdir(args.output)
+    #assert args.target in ["md", "html", "pdf"]
 
     builder = BuildEngine()
     log_info("building...")
-    builder.build(sys.argv[-1], out_dir)
+    builder.build(args.input, args.output)
 
     log_info("rendering...")
-    render(os.path.join(out_dir, "build.md"), out_dir)
+    render(os.path.join(args.output, "build.md"), args.output)
 
     log_info("done")
     
