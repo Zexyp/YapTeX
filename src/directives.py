@@ -95,7 +95,7 @@ class PageBreakDirective(Directive):
     
     def handle(self, line, engine):
         # sketchy
-        return '<div style="page-break-before: always;"/>\n'  #<pdf:nextpage/>
+        return '<div style="page-break-before: always;"></div>\n'  #<pdf:nextpage/>
 
 class SetDirective(Directive):
     trigger_on = "set"
