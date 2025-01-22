@@ -27,24 +27,15 @@ import argparse
 import colorama
 
 from engine import BuildEngine
-
-def log_debug(msg):
-    print(f"{colorama.Fore.LIGHTBLACK_EX}b: {msg}{colorama.Fore.RESET}")
-
-def log_directive(msg):
-    print(f"{colorama.Fore.CYAN}d: {msg}{colorama.Fore.RESET}")
-
-def log_info(msg):
-    print(f"i: {msg}")
-
-def log_error(msg):
-    print(f"{colorama.Fore.RED}e: {msg}{colorama.Fore.RESET}")
-
-def log_warning(msg):
-    print(f"{colorama.Fore.YELLOW}w: {msg}{colorama.Fore.RESET}")
+from renderers import *
+from log import *
 
 def render(source_file, dir_output):
+
+    ###
+
     PATH_DIR_RESOURCE = os.path.join(os.path.dirname(__file__), "res")
+    assert os.path.isdir(PATH_DIR_RESOURCE)
 
     assert os.path.isfile(source_file)
 
@@ -132,6 +123,8 @@ def render(source_file, dir_output):
     with open(html_file, mode='w', encoding="utf8") as html:
         html.write(content)
 
+    ###
+
     from xhtml2pdf import pisa
     from xhtml2pdf.tags import pisaTagPDFTOC
     # ! monkey patch !
@@ -165,21 +158,40 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("input")
-    parser.add_argument("-o", "--output", default="./out")
-    #parser.add_argument("--target")
+    parser.add_argument("--output", default="./out")
+    parser.add_argument("--target", choices=["md", "html", "pdf"], default="raw")
 
     args = parser.parse_args()
 
     assert os.path.isfile(args.input)
-    assert os.path.isdir(args.output)
+    os.makedirs(args.output, exist_ok=True)
     #assert args.target in ["md", "html", "pdf"]
 
     builder = BuildEngine()
     log_info("building...")
-    builder.build(args.input, args.output)
+    build_dir = os.path.join(args.output, "raw")
+    os.makedirs(build_dir, exist_ok=True)
+    raw_file = builder.build(args.input, build_dir)
 
-    log_info("rendering...")
-    render(os.path.join(args.output, "build.md"), args.output)
+    renderers = {
+        "md": MdRenderer,
+        "html": HtmlRenderer,
+        "pdf": PdfRenderer,
+    }
+
+    if (args.target != "raw"):
+        def render_dependencies(renderer: Renderer, file: str):
+            if renderer.depends_on:
+                file = render_dependencies(renderer.depends_on(), file)
+            log_info(f"rendering '{renderer.identifier}'")
+            render_output = os.path.join(args.output, renderer.identifier)
+            os.makedirs(render_output, exist_ok=True)
+            return renderer.render(file, render_output)
+        renderer = renderers[args.target]()
+        render_dependencies(renderer, raw_file)
+
+    #log_info("rendering...")
+    #render(os.path.join(args.output, "index.md"), build_dir)
 
     log_info("done")
     
