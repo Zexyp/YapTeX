@@ -110,10 +110,10 @@ class SetDirective(Directive):
         engine.variables[variable_name] = variable_value
 
 class IncrementDirective(Directive):
-    trigger_on = "increment"
+    trigger_on = "inc"
 
     def handle(self, line, engine):
-        m = re.match(rf'^increment\s+{REGEX_GROUP_IDENTIFIER}\s+{REGEX_GROUP_NUMBER}$', line)
+        m = re.match(rf'^inc\s+{REGEX_GROUP_IDENTIFIER}\s+{REGEX_GROUP_NUMBER}$', line)
         assert m, "malformed"
 
         variable_name = m.group(1)
@@ -125,6 +125,23 @@ class IncrementDirective(Directive):
         increment = int(by)
 
         engine.variables[variable_name] = str(value + increment)
+
+class DecrementDirective(Directive):
+    trigger_on = "dec"
+
+    def handle(self, line, engine):
+        m = re.match(rf'^dec\s+{REGEX_GROUP_IDENTIFIER}\s+{REGEX_GROUP_NUMBER}$', line)
+        assert m, "malformed"
+
+        variable_name = m.group(1)
+        by = m.group(2)
+
+        assert variable_name in engine.variables, "undefined variable"
+
+        value = int(engine.variables[variable_name])
+        decrement = int(by)
+
+        engine.variables[variable_name] = str(value - decrement)
 
 class DefineDirective(Directive):
     trigger_on = "define"
