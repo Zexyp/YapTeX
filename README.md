@@ -26,6 +26,7 @@ Includes another file.
 ```
 
 ---
+
 #### `#section "<name>"` `#endsect`
 
 Creates a section. Sections are converted into headers with regard to depth.
@@ -36,6 +37,7 @@ Wolrd
 ```
 
 ---
+
 #### `#define <NAME>[(<ARG>...)]` `#enddef`
 
 Using this directive you can create macros.
@@ -56,6 +58,16 @@ Hello %NAME %LASTNAME!
 
 ---
 
+#### `#pagebreak`
+
+Insert page braking feature.
+```md
+#pagebreak
+```
+
+---
+
+
 ### Variable Directives
 #### `#set <VARIABLE> {"<value>",<number>}`
 
@@ -66,6 +78,7 @@ Sets a custom variable
 ```
 
 ---
+
 #### `#increment <VARIABLE> <by>`
 
 Increments a given variable by specified amount.
@@ -74,6 +87,7 @@ Increments a given variable by specified amount.
 ```
 
 ---
+
 
 ### Advanced Directives
 #### `#copy "<what>" "<where>"`
@@ -84,6 +98,7 @@ Copies a gived file to directory relative to the output directory. Mostly used f
 ```
 
 ---
+
 #### `#if "<VARIABLE>"` `#elif "<VARIABLE>"` `#else` `#endif`
 
 Includes content if variable is defined and isn't empty (or not zero). Also needs to be ended like other block directives.
@@ -98,6 +113,7 @@ I have no idea what's going on...
 ```
 
 ---
+
 #### `#warning "<message>"`
 
 Prints a message while building.
@@ -106,6 +122,7 @@ Prints a message while building.
 ```
 
 ---
+
 
 ### Using Variables
 Varibles can be placed anywhere using the `%` symbol as a prefix.

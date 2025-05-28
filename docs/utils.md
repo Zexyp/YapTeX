@@ -5,6 +5,7 @@
 #define DECLARE_END_DIRECTIVE
 #endsect
 ---
+
 #enddef
 
 #define PLACE_DECLARED
