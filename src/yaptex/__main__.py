@@ -1,4 +1,4 @@
-"""
+yaptex_motd = """
                                                              ™
 ▀███▀   ▀██▀                 ███▀▀██▀▀███       ▀███▀   ▀██▀ 
   ███   ▄█                   █▀   ██   ▀█         ███▄  ▄█   
@@ -10,6 +10,7 @@
                      ██                                      
                    ▄████▄                                    
 The Markdow Preprocessor
+
 """
 
 # TODO: simpler header indents
@@ -28,16 +29,22 @@ from .renderers import *
 from .log import *
 
 def main():
-    print("░▀▄▀▒▄▀▄▒█▀▄░▀█▀▒██▀░▀▄▀ ™")
-    print("░▒█▒░█▀█░█▀▒░▒█▒░█▄▄░█▒█")
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument("input")
     parser.add_argument("--output", default="./out")
     parser.add_argument("--target", choices=["md", "html", "pdf"], default="raw")
+    
+    prev_help = parser.print_help;
+    def help_hook(*args, **kwargs):
+        sys.stdout.write(yaptex_motd)
+        prev_help(*args, **kwargs)
+    parser.print_help = help_hook
 
     args = parser.parse_args()
+
+    print("░▀▄▀▒▄▀▄▒█▀▄░▀█▀▒██▀░▀▄▀ ™")
+    print("░▒█▒░█▀█░█▀▒░▒█▒░█▄▄░█▒█")
 
     assert os.path.isfile(args.input)
     os.makedirs(args.output, exist_ok=True)
