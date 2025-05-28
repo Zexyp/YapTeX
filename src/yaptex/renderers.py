@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import os
 
-from log import *
+from .log import *
 
 class Renderer(ABC):
     depends_on = None

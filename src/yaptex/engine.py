@@ -7,15 +7,14 @@ import sys
 from datetime import datetime
 from typing import Callable
 
-import colorama
-
-from utils import *
+from .utils import *
+from .log import *
 
 class Macro:
     params: list[str] = None
     body: str = None
 
-from directives import *
+from .directives import *
 
 class BuildEngine:
     def __init__(self) -> None:
@@ -214,19 +213,19 @@ class BuildEngine:
         return f"{self.current_file}:{self.current_line_number}"
 
     def log_debug(self, msg: str):
-        print(f"{colorama.Fore.LIGHTBLACK_EX}b: {msg}{colorama.Fore.RESET}")
+        log_debug(msg)
 
     def log_directive(self, msg: str):
-        print(f"{colorama.Fore.CYAN}d: {msg}{colorama.Fore.RESET}")
+        log_directive(msg)
 
     def log_info(self, msg: str):
-        print(f"i: {msg}")
+        log_info(msg)
 
     def log_error(self, msg: str):
-        print(f"{colorama.Fore.RED}e: {msg}{colorama.Fore.RESET}")
+        log_error(msg)
 
     def log_warning(self, msg: str):
-        print(f"{colorama.Fore.YELLOW}w: {msg}{colorama.Fore.RESET}")
+        log_warning(msg)
 
     def log_file_error(self, msg: str):
         self.log_error(f"- {self.format_file_position()}: {msg}")

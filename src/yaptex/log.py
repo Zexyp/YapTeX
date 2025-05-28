@@ -1,5 +1,7 @@
 import colorama
 
+colorama.init()
+
 def log_debug(msg):
     print(f"{colorama.Fore.LIGHTBLACK_EX}b: {msg}{colorama.Fore.RESET}")
 

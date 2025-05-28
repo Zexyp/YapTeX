@@ -6,8 +6,8 @@ from typing import Generator
 import sys
 from datetime import datetime
 
-from engine import Macro
-from utils import *
+from .engine import Macro
+from .utils import *
 
 class Directive(ABC):
     # arg regex (\s+(.+))?
