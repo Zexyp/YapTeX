@@ -16,6 +16,9 @@ license-files = ["LICEN[CS]E*"]
 Homepage = "https://github.com/Zexyp/YapTeX"
 Issues = "https://github.com/Zexyp/YapTeX/issues"
 
+[project.scripts]
+yaptex = "yaptex.__main__:main"
+
 [tool.setuptools]
 package-dir = { "" = "src" }
 
