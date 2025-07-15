@@ -3,6 +3,8 @@ import os
 
 from .log import *
 
+HTML_ENCODING = "utf8"
+
 class Renderer(ABC):
     depends_on = None
     identifier = None
@@ -65,7 +67,7 @@ class HtmlRenderer(Renderer):
             return pygments.highlight(content, lexer, formatter)
 
         md = MarkdownIt("commonmark", {"linkify": True})
-        md.enable(["linkify"])
+        md.enable(["linkify", "table"])
         md.options.highlight = highlight
         with open(file, mode='r', encoding="utf8") as source:
             content = md.render(source.read())
@@ -147,7 +149,7 @@ class HtmlRenderer(Renderer):
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             shutil.copy(ref_rel_path, dest)
         
-        with open(html_file, mode='w', encoding="utf8") as html:
+        with open(html_file, mode='w', encoding=HTML_ENCODING) as html:
             html.write(content)
         return html_file
 
@@ -167,7 +169,7 @@ class PdfRenderer(Renderer):
             pisaFileObject.getNamedFile = lambda self: self.uri
 
         pdf_file = os.path.join(output_dir, "index.pdf")
-        with open(pdf_file, mode="wb") as pdf, open(file, mode="r") as html_file:
+        with open(pdf_file, mode="wb") as pdf, open(file, mode="r", encoding=HTML_ENCODING) as html_file:
             workdir = os.path.dirname(file)
 
             def link_callback(uri, rel):
