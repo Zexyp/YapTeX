@@ -148,7 +148,7 @@ class BuildEngine:
         line = self.handle_variables(line, self.variables)
 
         if re.match(r'^#+ ', line):
-            self.log_file_warning(f"detected fixed header")
+            self.log_file_warning(f"detected fixed header") # pedantic
         elif line.startswith(PREPROCESSOR_CHAR):
             for d in self.directives:
                 if line.startswith(f"{PREPROCESSOR_CHAR}{d.trigger_on}"):

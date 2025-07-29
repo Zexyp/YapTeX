@@ -33,7 +33,7 @@ def main():
 
     parser.add_argument("input")
     parser.add_argument("--output", default="./out")
-    parser.add_argument("--target", choices=["md", "html", "pdf"], default="raw")
+    parser.add_argument("--target", choices=["raw", "md", "html", "pdf"], default="raw")
     
     prev_help = parser.print_help;
     def help_hook(*args, **kwargs):
@@ -51,10 +51,16 @@ def main():
     #assert args.target in ["md", "html", "pdf"]
 
     builder = BuildEngine()
-    log_info("building...")
+
     build_dir = os.path.join(args.output, "raw")
     os.makedirs(build_dir, exist_ok=True)
-    raw_file = builder.build(args.input, build_dir)
+
+    log_info("building...")
+    try:
+        raw_file = builder.build(args.input, build_dir)
+    except:
+        log_error("build failed")
+        raise
 
     renderers = {
         "md": MdRenderer,
@@ -66,15 +72,19 @@ def main():
         def render_dependencies(renderer: Renderer, file: str):
             if renderer.depends_on:
                 file = render_dependencies(renderer.depends_on(), file)
-            log_info(f"rendering '{renderer.identifier}'")
+            log_info(f"renderer '{renderer.identifier}'")
             render_output = os.path.join(args.output, renderer.identifier)
             os.makedirs(render_output, exist_ok=True)
             return renderer.render(file, render_output)
+        
         renderer = renderers[args.target]()
-        render_dependencies(renderer, raw_file)
 
-    #log_info("rendering...")
-    #render(os.path.join(args.output, "index.md"), build_dir)
+        log_info("rendering...")
+        try:
+            render_dependencies(renderer, raw_file)
+        except:
+            log_error("rendering failed")
+            raise
 
     log_info("done")
     

@@ -30,7 +30,7 @@ class IncludeDirective(Directive):
         
         filepath = os.path.normpath(os.path.join(os.path.dirname(engine.current_file), filepath))
 
-        assert os.path.isfile(filepath), "file not found"
+        assert os.path.isfile(filepath), f"file '{filepath}' does not exist"
         assert filepath not in engine.filestack, "cyclic include"
         
         engine.filestack.append(filepath)
@@ -79,7 +79,7 @@ class CopyDirective(Directive):
         to_dir = str_unescape(m.group(2))
 
         src_file = os.path.join(os.path.dirname(engine.current_file), what_file)
-        assert os.path.isfile(src_file), f"file {src_file} does not exist"
+        assert os.path.isfile(src_file), f"file '{src_file}' does not exist"
         
         dest_dir = os.path.join(engine.path_dir_output, to_dir)
         if not os.path.isdir(dest_dir):
@@ -119,7 +119,7 @@ class IncrementDirective(Directive):
         variable_name = m.group(1)
         by = m.group(2)
 
-        assert variable_name in engine.variables, "undefined variable"
+        assert variable_name in engine.variables, f"undefined variable '{variable_name}'"
 
         value = int(engine.variables[variable_name])
         increment = int(by)
@@ -136,7 +136,7 @@ class DecrementDirective(Directive):
         variable_name = m.group(1)
         by = m.group(2)
 
-        assert variable_name in engine.variables, "undefined variable"
+        assert variable_name in engine.variables, f"undefined variable '{variable_name}'"
 
         value = int(engine.variables[variable_name])
         decrement = int(by)

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import os
+from textwrap import dedent, indent
 
 from .log import *
 
@@ -77,6 +78,36 @@ class HtmlRenderer(Renderer):
         # by default xhtml2pdf is useless because it can't even render some basic characters
         shutil.copytree(os.path.join(PATH_DIR_RESOURCE, "font"), os.path.join(output_dir, "font"), dirs_exist_ok=True)
 
+        def assemble_font_style():
+            font_family = "Bitter"
+            res_path_font_regular = "font/Bitter/Bitter-Regular.ttf"
+            res_path_font_bold = "font/Bitter/Bitter-Bold.ttf"
+            res_path_font_italic = "font/Bitter/Bitter-Italic.ttf"
+            res_path_font_bold_italic = None
+
+            return f"""
+@font-face {{
+    font-family: {font_family};
+    src: url("{res_path_font_regular}");
+}}
+@font-face {{
+    font-family: {font_family};
+    src: url("{res_path_font_bold}");
+    font-weight: bold;
+}}
+@font-face {{
+    font-family: {font_family};
+    src: url("{res_path_font_italic}");
+    font-style: italic;
+}}
+@font-face {{
+    font-family: {font_family};
+    src: url("{res_path_font_bold_italic or res_path_font_regular}");
+    font-weight: bold;
+    font-style: italic;
+}}
+"""
+
         content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,27 +115,7 @@ class HtmlRenderer(Renderer):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document \\(o_o)/</title>
     <style>
-    @font-face {{
-        font-family: Bitter;
-        src: url("font/Bitter/Bitter-Regular.ttf");
-    }}
-    @font-face {{
-        font-family: Bitter;
-        src: url("font/Bitter/Bitter-Bold.ttf");
-        font-weight: bold;
-    }}
-    @font-face {{
-        font-family: Bitter;
-        src: url("font/Bitter/Bitter-Italic.ttf");
-        font-style: italic;
-    }}
-    @font-face {{
-        font-family: Bitter;
-        src: url("font/Bitter/Bitter-{print('sussy patch') or 'Regular'}.ttf");
-        font-weight: bold;
-        font-style: italic;
-    }}
-
+{assemble_font_style()}
     body {{
         font-family: Bitter;
     }}
@@ -127,7 +138,7 @@ class HtmlRenderer(Renderer):
             return bool(parsed.scheme and parsed.netloc)
         referenced_paths = [link for link in tree.xpath('//img[@src]/@src') if not is_url(link)]
 
-        # decide behaviour (relative, assets)
+        # TODO: decide behaviour (relative, assets)
         # this is keep relative strategy
         for path in referenced_paths:
             log_debug(f"referenced path '{path}'")
