@@ -1,0 +1,33 @@
+## positive
+#if yeet_priority
+yeet priority
+#elif yes
+yes
+#else
+no
+#endif
+
+#ifdef def_yeet_priority
+def yeet priority
+#elifdef def_yes
+def yes
+#else
+def no
+#endif
+
+## negative
+#ifn yeet_priority
+yeet priority
+#elif yes
+yes
+#else
+no
+#endif
+
+#ifndef def_yeet_priority
+def yeet priority
+#elifndef def_yes
+def yes
+#else
+def no
+#endif

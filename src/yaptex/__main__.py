@@ -31,11 +31,15 @@ from .log import *
 def main():
     parser = argparse.ArgumentParser()
 
+    from importlib.metadata import version
+    parser.add_argument('--version', action='version', version=f"YapTeX {version(__package__)}")
     parser.add_argument("input")
     parser.add_argument("--output", default="./out")
     parser.add_argument("--target", choices=["raw", "md", "html", "pdf"], default="raw")
-    
-    prev_help = parser.print_help;
+    parser.add_argument("-D", nargs='*', action="append")
+    parser.add_argument("--pedantic")
+
+    prev_help = parser.print_help
     def help_hook(*args, **kwargs):
         sys.stdout.write(yaptex_motd)
         prev_help(*args, **kwargs)
@@ -57,7 +61,7 @@ def main():
 
     log_info("building...")
     try:
-        raw_file = builder.build(args.input, build_dir)
+        raw_file = builder.build(args.input, build_dir, defines=args.D)
     except:
         log_error("build failed")
         raise

@@ -1,6 +1,7 @@
 import os
 import re
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from io import TextIOWrapper, StringIO
 from typing import Generator
 import sys
@@ -10,6 +11,9 @@ from typing import Callable
 from .utils import *
 from .log import *
 
+PER_LINE_VERBOSITY = False
+
+@dataclass
 class Macro:
     params: list[str] = None
     body: str = None
@@ -28,12 +32,21 @@ class BuildEngine:
             EndSectionDirective(),
             CopyDirective(),
             PageBreakDirective(),
+
             SetDirective(),
             IncrementDirective(),
+            DecrementDirective(),
+
             DefineDirective(),
-            WarningDirective(),
+            UndefineDirective(),
+
             IfDirective(),
+            IfDefDirective(),
+
+            WarningDirective(),
+            ErrorDirective(),
         ]
+        self.directives.sort(reverse=True, key=lambda x: len(x.trigger_on)) # monkey fix, we need to handle longer names first
         self.filestack: list[str] = []
         self.sectionstack: list[str] = []
         self.section_counters: list[int] = [1]
@@ -45,6 +58,8 @@ class BuildEngine:
             "_DAY_": str(dtnow.day),
             "__FILE__": lambda: self.current_file,
             "__LINE__": lambda: self.current_line_number,
+            "__TIME__": lambda: str(dtnow.time),
+            "__DATE__": lambda: str(dtnow.date),
         }
 
         self.output: TextIOWrapper = None
@@ -54,7 +69,10 @@ class BuildEngine:
         self.current_line_number: str = None
 
     # build a file
-    def build(self, source_file: str, output_dir: str):
+    def build(self, source_file: str, output_dir: str, defines: list[str] = None):
+        if defines:
+            self.log_debug("using supplied defines: " + ", ".join([f"'{v}'" for v in defines]))
+
         assert os.path.isfile(source_file)
         assert os.path.isdir(output_dir)
 
@@ -71,20 +89,47 @@ class BuildEngine:
             except AssertionError as ex:
                 self.log_file_error(f"{ex}")
                 raise
-        
+
         if len(self.filestack) > 0:
             self.log_warning("wtf?!")
 
         return out_file
 
+    def process_line(self, line):
+        self.log_line("processing line: " + repr(line))
+        if re.match(r'^#+ ', line):
+            self.log_file_warning(f"detected fixed header")  # pedantic
+
+        if line.startswith(DIRECTIVE_CHAR):
+            for d in self.directives:
+                if line.startswith(f"{DIRECTIVE_CHAR}{d.trigger_on}"):
+                    line = line.strip('\n')
+                    self.log_directive(line)
+                    line = d.handle(line.removeprefix(DIRECTIVE_CHAR), self)
+
+                    return ""
+
+        if line:
+            line = self.handle_variables(line, self.variables)
+            line = self.handle_macros(line)
+
+            # directive char escaping
+            if line.startswith(f"{DIRECTIVE_ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
+                line = line.removeprefix(DIRECTIVE_ESCAPE_CHAR)
+
+            return line
+
+        return ""
+
+
     # processes readable stream
-    def process(self, readable: TextIOWrapper):
+    def process_stream(self, readable: TextIOWrapper):
         last_input = self.input
         self.input = readable
 
         for line in self.consume():
             self.feed(line)
-        
+
         self.input = last_input
 
     # opens a file and processes it
@@ -97,11 +142,11 @@ class BuildEngine:
             last_file = self.current_file
 
             self.current_file = filepath
-            
-            self.process(file)
+
+            self.process_stream(file)
 
             self.current_file = last_file
-    
+
     # reads a line from current file
     def consume(self) -> Generator[str, None, None]:
         initial_sections_count = len(self.sectionstack)
@@ -113,69 +158,30 @@ class BuildEngine:
         else:
             if len(self.sectionstack) != initial_sections_count:
                 self.log_warning(f"unended sections {self.sectionstack} (ignore this if in macro)")
-        
+
         self.current_line_number = None
         self.lines = None
         return None
-    
-    # fully handles a macro
-    def handle_macro(self, macro_name: str, macro_args: str):
-        self.log_directive(f"handle macro '{macro_name}{macro_args if macro_args else ''}'")
-        
-        assert macro_name in self.macros, "macro not defined"
-
-        m = self.macros[macro_name]
-        body = m.body
-        
-        if macro_args:
-            args = [x.strip() for x in macro_args.strip("()").split(MACRO_ARG_SEPARATOR)]
-            
-            assert len(args) == len(m.params), "invalid number of arguments given"
-            
-            body = self.handle_variables(body, dict(zip(m.params, args)))
-        
-        try:
-            # file context not possible due to relative paths
-            result = self.process(StringIO(body))
-        except:
-            self.log_file_warning(f"during '{macro_name}' macro expansion an error occured")
-            raise
-
-        return result
 
     # adds line to be processed
     def feed(self, line: str):
-        line = self.handle_variables(line, self.variables)
+        line = self.process_line(line)
+        assert line is not None
+        self.log_line("writing: " + repr(line))
+        self.output.write(line)
 
-        if re.match(r'^#+ ', line):
-            self.log_file_warning(f"detected fixed header") # pedantic
-        elif line.startswith(PREPROCESSOR_CHAR):
-            for d in self.directives:
-                if line.startswith(f"{PREPROCESSOR_CHAR}{d.trigger_on}"):
-                    self.log_directive(line.strip('\n'))
-                    line = d.handle(line.removeprefix(PREPROCESSOR_CHAR), self)
-                    break
-            else:
-                if m := re.match(rf'^{REGEX_MACRO_CHAR}({"|".join(self.macros.keys())})(\s*\(\s*.+\s*(,\s*.+\s*)*\))?', line):
-                    self.handle_macro(m.group(1), m.group(2))
-                    return
-                else:
-                    unknown = line.strip('\n')
-                    self.log_warning(f"skipping unknown directive ({unknown})")
-
-        if line:
-            # hash escaping
-            if line.startswith(f"{ESCAPE_CHAR}{PREPROCESSOR_CHAR}"):
-                line = line.replace(f"{ESCAPE_CHAR}{PREPROCESSOR_CHAR}", PREPROCESSOR_CHAR, 1)
-            
-            self.output.write(line)
+    # adds raw line
+    def feed_raw(self, line: str):
+        assert line is not None
+        self.log_line("writing raw: " + repr(line))
+        self.output.write(line)
 
     # replaces variables with values
     def handle_variables(self, body: str, vars: dict[str, str]):
         if not vars:
             return body
 
-        def place_var(modifier, variable_name):
+        def place_variable(modifier, variable_name):
 
             assert variable_name in variable_name, "undefined variable"
 
@@ -183,13 +189,13 @@ class BuildEngine:
             if callable(value):
                 self.log_debug(f"called variable '{variable_name}'")
                 value = value()
-            
+
             match modifier:
                 case "html":
                     import html
                     value = html.escape(value)
                 case "id":
-                    value = re.sub('[^a-z ]', "", value.lower()).replace(" ", "-")
+                    value = re.sub('[^a-zA-Z0-9 ]', "", value.lower()).replace(" ", "-")
                 case "esc":
                     value = str_escape(value)
                 case "bn":
@@ -202,18 +208,64 @@ class BuildEngine:
                     value = value.upper()
                 case "t":
                     value = value.title()
-            
+
             return value
-            
-        return re.sub(rf'(id|html|esc|bn|dn|l|u|t)?%({"|".join(vars)})', lambda m: place_var(m.group(1), m.group(2)), body)
+
+        pattern = rf'(id|html|esc|bn|dn|l|u|t)?%({"|".join([re.escape(vn) for vn in vars])})'
+        result = re.sub(pattern, lambda m: place_variable(m.group(1), m.group(2)), body)
+        if VARIABLE_CHAR in result:
+            self.log_file_warning(f"unresolved variable")
+        return result
+
+    def handle_macros(self, line) -> str:
+        self.log_line("line for macro handling: " + repr(line))
+        # fully handles a macro
+        def place_macro(macro_name: str, macro_args: str):
+            self.log_debug(f"handle macro '{macro_name}{macro_args if macro_args else ''}'")
+
+            assert macro_name in self.macros, f"macro '{macro_name}' not defined"
+
+            m = self.macros[macro_name]
+            body = m.body
+
+            if macro_args:
+                args = [x.strip() for x in macro_args.strip("()").split(MACRO_ARG_SEPARATOR)]
+
+                assert len(args) == len(m.params), "invalid number of arguments given"
+
+                body = self.handle_variables(body, dict(zip(m.params, args)))
+
+            result = ""
+            if body:
+                try:
+                    # file context not possible due to relative paths
+                    result = self.process_line(body)
+                except:
+                    self.log_file_warning(f"during '{macro_name}' macro expansion an error occurred")
+                    raise
+
+            return result
+
+        pattern = rf'{REGEX_MACRO_CHAR}({"|".join([re.escape(mn) for mn in self.macros.keys()])})(\s*\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
+        result = re.sub(pattern, lambda m: place_macro(m.group(1), m.group(2)), line)
+        if MACRO_CHAR in result:
+            self.log_file_warning(f"unresolved macro")
+
+        return result
 
     # logging methods
+
+    def assert_that(self, condition):
+        raise NotImplemented
 
     def format_file_position(self):
         return f"{self.current_file}:{self.current_line_number}"
 
     def log_debug(self, msg: str):
         log_debug(msg)
+
+    def log_line(self, msg: str):
+        if (PER_LINE_VERBOSITY): self.log_debug(f"l: {msg}")
 
     def log_directive(self, msg: str):
         log_directive(msg)
