@@ -1,4 +1,4 @@
-yaptex_motd = """
+motd = """
                                                              ™
 ▀███▀   ▀██▀                 ███▀▀██▀▀███       ▀███▀   ▀██▀ 
   ███   ▄█                   █▀   ██   ▀█         ███▄  ▄█   
@@ -29,22 +29,9 @@ from .renderers import *
 from .log import *
 
 def main():
-    parser = argparse.ArgumentParser()
+    from .cli import build_parser
 
-    from importlib.metadata import version
-    parser.add_argument('--version', action='version', version=f"YapTeX {version(__package__)}")
-    parser.add_argument("input")
-    parser.add_argument("--output", default="./out")
-    parser.add_argument("--target", choices=["raw", "md", "html", "pdf"], default="raw")
-    parser.add_argument("-D", nargs='*', action="append")
-    parser.add_argument("--pedantic")
-
-    prev_help = parser.print_help
-    def help_hook(*args, **kwargs):
-        sys.stdout.write(yaptex_motd)
-        prev_help(*args, **kwargs)
-    parser.print_help = help_hook
-
+    parser = build_parser()
     args = parser.parse_args()
 
     print("░▀▄▀▒▄▀▄▒█▀▄░▀█▀▒██▀░▀▄▀ ™")
@@ -60,8 +47,10 @@ def main():
     os.makedirs(build_dir, exist_ok=True)
 
     log_info("building...")
+    builder.configure(pedantic=args.pedantic)
     try:
-        raw_file = builder.build(args.input, build_dir, defines=args.D)
+        raw_file = builder.build(args.input, build_dir,
+            defines=[i for a in args.D for i in a] if args.D else None)
     except:
         log_error("build failed")
         raise

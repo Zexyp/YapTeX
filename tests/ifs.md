@@ -1,3 +1,7 @@
+#ifdef !def_yeet_priority
+! yeet
+#endif
+
 ## positive
 #if yeet_priority
 yeet priority
@@ -17,17 +21,17 @@ def no
 
 ## negative
 #ifn yeet_priority
-yeet priority
+not yeet priority
 #elif yes
-yes
+not yes
 #else
 no
 #endif
 
 #ifndef def_yeet_priority
-def yeet priority
+not def yeet priority
 #elifndef def_yes
-def yes
+not def yes
 #else
 def no
 #endif

@@ -4,3 +4,4 @@ markdown-it-py
 linkify-it-py
 Pygments
 lxml
+pyyaml

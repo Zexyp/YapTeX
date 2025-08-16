@@ -1,3 +1,7 @@
+---
+title: yippee
+---
+
 #set please="value"
 
 #define TEXT pog
@@ -8,14 +12,16 @@ dupsík
 #define MULTIARGED(YEET, VAR) %YEET - %VAR
 
 # define
-§HELLO_WORLD
+?HELLO_WORLD
 \---
-§MULTILINE
+?MULTILINE
 \---
-§ARGED(poopsie)
-§ARGED(%please)
-§MULTIARGED(poopsie, 2)
-§TEXT §TEXT
+?ARGED(poopsie)
+?ARGED(%please)
+?MULTIARGED(poopsie, 2)
+?TEXT ?TEXT
 
 yeye
 text
+
+#undef HELLO_WORLD

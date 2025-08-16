@@ -3,20 +3,21 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from io import TextIOWrapper, StringIO
-from typing import Generator
+from typing import Generator, Any
 import sys
 from datetime import datetime
 from typing import Callable
+from collections import OrderedDict
+import html
 
+import yaml
+
+from . import directives
 from .utils import *
 from .log import *
+from .structures import Macro
 
 PER_LINE_VERBOSITY = False
-
-@dataclass
-class Macro:
-    params: list[str] = None
-    body: str = None
 
 from .directives import *
 
@@ -28,9 +29,9 @@ class BuildEngine:
 
         self.directives: list[Directive] = [
             IncludeDirective(),
-            SectionDirective(),
-            EndSectionDirective(),
-            CopyDirective(),
+
+            RegionDirective(),
+            EndRegionDirective(),
             PageBreakDirective(),
 
             SetDirective(),
@@ -45,12 +46,27 @@ class BuildEngine:
 
             WarningDirective(),
             ErrorDirective(),
+
+            CopyDirective(),
         ]
-        self.directives.sort(reverse=True, key=lambda x: len(x.trigger_on)) # monkey fix, we need to handle longer names first
+        self.directives_map: OrderedDict[str, Directive] = None
+        def build_directives_map():
+            self.directives_map = OrderedDict()
+
+            for directive in self.directives:
+                for key in directive.trigger_on:
+                    assert key not in self.directives_map, f"overlapping directives '{key}'"
+                    self.directives_map[key] = directive
+
+            self.directives_map = OrderedDict(sorted(self.directives_map.items(), key=lambda item:  item[0], reverse=True))
+        build_directives_map()
+
         self.filestack: list[str] = []
         self.sectionstack: list[str] = []
         self.section_counters: list[int] = [1]
-        self.macros: dict[str, Macro] = {}
+        self.macros: dict[str, Macro] = {
+            "sizeof": Macro(params=None, body=None, action=lambda args, engine: engine.feed(str(len(args[0])))),
+        }
         dtnow = datetime.now()
         self.variables: dict[str, str | Callable] = {
             "_YEAR_": str(dtnow.year),
@@ -68,10 +84,32 @@ class BuildEngine:
         self.current_file: str = None
         self.current_line_number: str = None
 
+        self.pedantic = False
+
+        self.format_modifiers: dict[str, Callable[[str], str]] = {
+            "html": lambda v: html.escape(v),
+            "id": lambda v: re.sub('[^a-zA-Z0-9 ]', "", v.lower()).replace(" ", "-"),
+            "esc": lambda v: str_escape(v),
+            "bn": lambda v: os.path.basename(v),
+            "dn": lambda v: os.path.dirname(v),
+            "l": lambda v: v.lower(),
+            "u": lambda v: v.upper(),
+            "t": lambda v: v.title(),
+        }
+
+    def configure(self, pedantic: bool = None):
+        if pedantic is not None: self.pedantic = pedantic
+
     # build a file
-    def build(self, source_file: str, output_dir: str, defines: list[str] = None):
+    def build(self, source_file: str, output_dir: str,
+              defines: list[str] = None):
         if defines:
             self.log_debug("using supplied defines: " + ", ".join([f"'{v}'" for v in defines]))
+            for k in defines:
+                m = Macro()
+                m.body = None
+                m.params = None
+                self.macros[k] = m
 
         assert os.path.isfile(source_file)
         assert os.path.isdir(output_dir)
@@ -97,17 +135,13 @@ class BuildEngine:
 
     def process_line(self, line):
         self.log_line("processing line: " + repr(line))
+
+        # pedantic
         if re.match(r'^#+ ', line):
-            self.log_file_warning(f"detected fixed header")  # pedantic
+            self.pedantic_log_file(f"detected fixed header")
 
         if line.startswith(DIRECTIVE_CHAR):
-            for d in self.directives:
-                if line.startswith(f"{DIRECTIVE_CHAR}{d.trigger_on}"):
-                    line = line.strip('\n')
-                    self.log_directive(line)
-                    line = d.handle(line.removeprefix(DIRECTIVE_CHAR), self)
-
-                    return ""
+            return self.handle_directive(line)
 
         if line:
             line = self.handle_variables(line, self.variables)
@@ -121,14 +155,58 @@ class BuildEngine:
 
         return ""
 
+    def handle_directive(self, line):
+        m = re.match("^#([a-z]+)", line)
+        if m:
+            directive_key = m.group(1)
+            if directive_key not in self.directives_map:
+                self.pedantic_log_file(f"unknown directive '{directive_key}'")
+                return line
+            log_directive(line.removesuffix("\n"))
+            directive = self.directives_map[directive_key]
+            directive.handle(line.removeprefix(DIRECTIVE_CHAR), self)
+            return ""
+
+        # pedantic
+        elif not line.startswith(f"{DIRECTIVE_CHAR} "):
+            self.pedantic_log_file("unreadable directive")
+
+        return line
 
     # processes readable stream
     def process_stream(self, readable: TextIOWrapper):
         last_input = self.input
         self.input = readable
 
+        first_line = True
+
+        # page header
+        reading_page_header = None # states: None = don't care; True = start was found, now reading; False = read ended
+        page_header_string = ""
+
         for line in self.consume():
+            # first line header start handling
+            if first_line:
+                first_line = False
+
+                if line.startswith(PAGE_HEADER_SEPARATOR):
+                    self.log_debug("parsing page header")
+                    reading_page_header = True
+                    continue
+
+            if reading_page_header is True:
+                if line.startswith(PAGE_HEADER_SEPARATOR):
+                    reading_page_header = False
+                    continue # skip this line
+                page_header_string += line
+                continue
+            if reading_page_header == False:
+                reading_page_header = None
+                self.log_debug("parsing page header")
+                yaml.safe_load(page_header_string)
+
             self.feed(line)
+            first_line = False
 
         self.input = last_input
 
@@ -190,29 +268,14 @@ class BuildEngine:
                 self.log_debug(f"called variable '{variable_name}'")
                 value = value()
 
-            match modifier:
-                case "html":
-                    import html
-                    value = html.escape(value)
-                case "id":
-                    value = re.sub('[^a-zA-Z0-9 ]', "", value.lower()).replace(" ", "-")
-                case "esc":
-                    value = str_escape(value)
-                case "bn":
-                    value = os.path.basename(value)
-                case "dn":
-                    value = os.path.dirname(value)
-                case "l":
-                    value = value.lower()
-                case "u":
-                    value = value.upper()
-                case "t":
-                    value = value.title()
+            if modifier:
+                assert modifier in self.format_modifiers
+                value = self.format_modifiers[modifier](value)
 
             return value
 
-        pattern = rf'(id|html|esc|bn|dn|l|u|t)?%({"|".join([re.escape(vn) for vn in vars])})'
-        result = re.sub(pattern, lambda m: place_variable(m.group(1), m.group(2)), body)
+        pattern = rf'{VARIABLE_CHAR}({"|".join([re.escape(vn) for vn in vars])})(?:(\\)|{VARIABLE_FORMAT_SEPARATOR}({"|".join([re.escape(f.id) for f in self.format_modifiers])}))?'
+        result = re.sub(pattern, lambda m: place_variable(m.group(3), m.group(1)), body)
         if VARIABLE_CHAR in result:
             self.log_file_warning(f"unresolved variable")
         return result
@@ -227,13 +290,21 @@ class BuildEngine:
 
             m = self.macros[macro_name]
             body = m.body
+            action = m.action
 
             if macro_args:
                 args = [x.strip() for x in macro_args.strip("()").split(MACRO_ARG_SEPARATOR)]
 
                 assert len(args) == len(m.params), "invalid number of arguments given"
 
-                body = self.handle_variables(body, dict(zip(m.params, args)))
+                # action fuckery
+                if action:
+                    assert body is None, "unusable body"
+                    action(args, self)
+                elif body is not None:
+                    body = self.handle_variables(body, dict(zip(m.params, args)))
+                else:
+                    assert False, "useless macro"
 
             result = ""
             if body:
@@ -261,6 +332,9 @@ class BuildEngine:
     def format_file_position(self):
         return f"{self.current_file}:{self.current_line_number}"
 
+    def format_file_msg(self, msg):
+        return f"- {self.format_file_position()}: {msg}"
+
     def log_debug(self, msg: str):
         log_debug(msg)
 
@@ -280,8 +354,14 @@ class BuildEngine:
         log_warning(msg)
 
     def log_file_error(self, msg: str):
-        self.log_error(f"- {self.format_file_position()}: {msg}")
+        self.log_error(self.format_file_msg(msg))
 
     def log_file_warning(self, msg: str):
-        self.log_warning(f"- {self.format_file_position()}: {msg}")
+        self.log_warning(self.format_file_msg(msg))
+
+    def pedantic_log(self, msg: str):
+        if self.pedantic: self.log_warning(msg)
+
+    def pedantic_log_file(self, msg: str):
+        self.pedantic_log(self.format_file_msg(msg))
 

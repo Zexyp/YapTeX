@@ -6,27 +6,36 @@ from typing import Generator
 import sys
 from datetime import datetime
 
-from ..engine import Macro
 from ..utils import *
 
+# #pragma nest
 
 class Directive(ABC):
-    # arg regex (\s+(.+))?
-    trigger_on: str = None
+    trigger_on: list[str] = None
+
+    def __init__(self):
+        super().__init__()
+
+        if isinstance(self.trigger_on, str):
+            self.trigger_on = [self.trigger_on]
 
     @abstractmethod
     def handle(self, line: str, engine: 'BuildEngine'):
         pass
+
+class ArgDirective(Directive):
+    # arg regex (\s+(.+))?
+    pass
 
 from .ifs import *
 from .messages import *
 from .defines import *
 
 class IncludeDirective(Directive):
-    trigger_on = "include"
+    trigger_on = ["include"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^include\s+{REGEX_GROUP_QUOTED}$', line)
+        m = re.match(rf'^include\s+({REGEX_QUOTED})$', line)
         assert m, "malformed"
 
         filepath = str_unescape(m.group(1))
@@ -45,11 +54,11 @@ class IncludeDirective(Directive):
         engine.filestack.pop()
 
 
-class SectionDirective(Directive):
-    trigger_on = "section"
+class RegionDirective(Directive):
+    trigger_on = ["region"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^section\s+{REGEX_GROUP_QUOTED}$', line)
+        m = re.match(rf'^region\s+({REGEX_QUOTED})$', line)
         assert m, "malformed"
 
         section_name = str_unescape(m.group(1))
@@ -64,8 +73,8 @@ class SectionDirective(Directive):
         # return "#" * len(engine.sectionstack) + f" {'.'.join([str(n) for n in engine.section_counters[0:-1]])}&nbsp;&nbsp;&nbsp;<strong>{section_name}</strong>\n"
 
 
-class EndSectionDirective(Directive):
-    trigger_on = "endsect"
+class EndRegionDirective(Directive):
+    trigger_on = ["endregion"]
 
     def handle(self, line, engine):
         assert len(engine.sectionstack) > 0, "no section to end"
@@ -77,10 +86,10 @@ class EndSectionDirective(Directive):
 
 
 class CopyDirective(Directive):
-    trigger_on = "copy"
+    trigger_on = ["copy"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^copy\s+{REGEX_GROUP_QUOTED}\s+{REGEX_GROUP_QUOTED}$', line)
+        m = re.match(rf'^copy\s+({REGEX_QUOTED})\s+({REGEX_QUOTED})$', line)
         assert m, "malformed"
 
         what_file = str_unescape(m.group(1))
@@ -100,7 +109,7 @@ class CopyDirective(Directive):
 
 
 class PageBreakDirective(Directive):
-    trigger_on = "pagebreak"
+    trigger_on = ["pagebreak"]
 
     def handle(self, line, engine):
         # sketchy
@@ -108,43 +117,54 @@ class PageBreakDirective(Directive):
 
 
 class SetDirective(Directive):
-    trigger_on = "set"
+    trigger_on = ["set"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^set\s+({REGEX_IDENTIFIER})\s*=\s*(?:{REGEX_GROUP_QUOTED}|({REGEX_NUMBER}))',
+        m = re.match(rf'^set\s+({REGEX_IDENTIFIER})(?:\s+|\s*=\s*)({REGEX_QUOTED}|{REGEX_NUMBER_INT})',
                      line)  # $ is buggy
         assert m, "malformed"
 
         variable_name = m.group(1)
-        variable_value = str_unescape(m.group(2) or m.group(3) or "")
+        variable_value = str_unescape(m.group(2) or "").strip(QUOTE_CHAR)
 
         engine.variables[variable_name] = variable_value
 
+# does not go into negatives
+def _modify_last(text, increment):
+    mchs = list(re.finditer(REGEX_NUMBER_INT, text))
+    if not mchs:
+        return (text + str(increment)) if increment > 0 else text
+
+    last = mchs[-1]
+    start, end = last.span()
+    old = text[start:end]
+    value = int(old) + increment
+    return text[:start] + (str(value) if value > 0 else "") + text[end:]
 
 class IncrementDirective(Directive):
-    trigger_on = "inc"
+    trigger_on = ["inc"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^inc\s+({REGEX_IDENTIFIER})\s+({REGEX_NUMBER})$', line)
+        m = re.match(rf'^inc\s+({REGEX_IDENTIFIER})(?:\s+({REGEX_NUMBER_INT}))?$', line)
         assert m, "malformed"
 
         variable_name = m.group(1)
         by = m.group(2)
 
         assert variable_name in engine.variables, f"undefined variable '{variable_name}'"
+        
+        increment = int(by) if by else 1
+        last_value = engine.variables[variable_name]
+        new_value = str(int(last_value) + increment) if re.match(REGEX_NUMBER_INT, last_value) else _modify_last(last_value, increment)
 
-        # todo: fix
-        value = int(engine.variables[variable_name])
-        increment = int(by)
-
-        engine.variables[variable_name] = str(value + increment)
+        engine.variables[variable_name] = new_value
 
 
 class DecrementDirective(Directive):
-    trigger_on = "dec"
+    trigger_on = ["dec"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^dec\s+({REGEX_IDENTIFIER})\s+({REGEX_NUMBER})$', line)
+        m = re.match(rf'^dec\s+({REGEX_IDENTIFIER})(?:\s+({REGEX_NUMBER_INT}))?$', line)
         assert m, "malformed"
 
         variable_name = m.group(1)
@@ -152,8 +172,8 @@ class DecrementDirective(Directive):
 
         assert variable_name in engine.variables, f"undefined variable '{variable_name}'"
 
-        # todo: fix
-        value = int(engine.variables[variable_name])
-        decrement = int(by)
+        increment = -(int(by) if by else 1)
+        last_value = engine.variables[variable_name]
+        new_value = str(int(last_value) + increment) if re.match(REGEX_NUMBER_INT, last_value) else _modify_last(last_value, increment)
 
-        engine.variables[variable_name] = str(value - decrement)
+        engine.variables[variable_name] = new_value

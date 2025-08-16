@@ -1,40 +1,46 @@
 import re
 
 from . import Directive
-from ..engine import Macro
+from ..structures import Macro
 from ..utils import *
 
-
 class DefineDirective(Directive):
-    trigger_on = "define"
+    trigger_on = ["define"]
 
     # todo: add elipsis, multiline fuckery (escaping)
     def handle(self, line, engine):
-        pattern = rf'^define\s+({REGEX_IDENTIFIER})(\(\s*{REGEX_IDENTIFIER}\s*({MACRO_ARG_SEPARATOR}\s*{REGEX_IDENTIFIER}\s*)*\))?(\s+(.*?)({REGEX_MACRO_LINE_CONTINUE})?)?$'
+        pattern = rf'^define\s+({REGEX_IDENTIFIER})(\(\s*{REGEX_IDENTIFIER}\s*(?:{REGEX_MACRO_ARG_SEPARATOR}\s*{REGEX_IDENTIFIER}\s*)*\))?(?:\s+(.*?)({REGEX_MACRO_LINE_CONTINUE})?)?$'
         m = re.match(pattern, line)
         assert m, "malformed"
 
         macro_name = m.group(1)
         macro_params = m.group(2)
 
-        body_line = m.group(5)
-        continue_next_line = m.group(6) is not None
+        body_line = m.group(3)
+        continue_next_line = m.group(4) is not None
 
-        assert macro_name not in engine.macros, "macro redefinition"
+        assert macro_name not in engine.macros, "redefinition"
 
-        m = Macro()
-        m.params = None
-        m.body = body_line
+        mac = Macro()
+        mac.params = None
+        mac.body = body_line
 
         if macro_params:
-            m.params = [x.strip() for x in macro_params.strip("()").split(MACRO_ARG_SEPARATOR)]
+            mac.params = [x.strip() for x in macro_params.strip("()").split(MACRO_ARG_SEPARATOR)]
 
-        if continue_next_line:
+        def eat_macro():
             for body_line in engine.consume():
-                body_line = body_line.strip()
+                # allow leading spaces
+                if body_line.startswith(ESCAPE_CHAR):
+                    body_line = body_line.removeprefix(ESCAPE_CHAR).removesuffix('\n')
+                else:
+                    body_line = body_line.strip()
+
+                # consume line continuation
                 if continue_next_line := body_line.endswith(MACRO_LINE_CONTINUE):
                     body_line = body_line.removesuffix(MACRO_LINE_CONTINUE)
-                m.body += f"\n{body_line}"
+
+                mac.body += f"\n{body_line}"
 
                 # escape the pain
                 if not continue_next_line:
@@ -42,11 +48,22 @@ class DefineDirective(Directive):
             else:
                 assert False, "unended macro"
 
-        engine.macros[macro_name] = m
+        if continue_next_line:
+            eat_macro()
+
+        engine.macros[macro_name] = mac
 
 
 class UndefineDirective(Directive):
-    trigger_on = "undef"
+    trigger_on = ["undef"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^undef\s+{REGEX_GROUP_IDENTIFIER}$', line)
+        m = re.match(rf'^undef\s+({REGEX_IDENTIFIER})$', line)
+
+        assert m, "malformed"
+
+        macro_name = m.group(1)
+
+        assert macro_name in engine.macros, f"'{macro_name}' is not defined"
+
+        del engine.macros[macro_name]

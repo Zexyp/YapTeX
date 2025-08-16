@@ -13,7 +13,7 @@ class BaseIfDirective(Directive):
 
     def __init__(self):
         # convert to full representation
-        self.trigger_negative = f"{DIRECTIVE_CHAR}{self.trigger_negative}"
+        # don't modify self.trigger_negative (since it's the initial one)
         self.trigger_elif = f"{DIRECTIVE_CHAR}{self.trigger_elif}"
         self.trigger_elif_negative = f"{DIRECTIVE_CHAR}{self.trigger_elif_negative}"
         self.trigger_else = f"{DIRECTIVE_CHAR}{self.trigger_else}"
@@ -22,8 +22,8 @@ class BaseIfDirective(Directive):
     # build with mindset that negatives are longer
     def handle(self, line: str, engine: 'BuildEngine') -> str | None:
         negate_eval = line.startswith(self.trigger_negative)
-        expression = line.removeprefix(self.trigger_negative).removeprefix(self.trigger_on).strip()
-        eval_result = self.eval_condition(expression)
+        expression = removeprefixes(line, self.trigger_on).strip()
+        eval_result = self.eval_condition(expression, engine)
         eval_result = not eval_result if negate_eval else eval_result
 
         should_feed = True if eval_result else None
@@ -44,7 +44,7 @@ class BaseIfDirective(Directive):
                     continue
 
                 expression = if_line.removeprefix(self.trigger_elif_negative).removeprefix(self.trigger_elif).strip()
-                eval_result = self.eval_condition(expression)
+                eval_result = self.eval_condition(expression, engine)
                 eval_result = not eval_result if negate_eval else eval_result
 
                 should_feed = True if eval_result else (None if should_feed is None else False)
@@ -71,29 +71,29 @@ class BaseIfDirective(Directive):
             assert False, "unended if"
 
     @abstractmethod
-    def eval_condition(self, expression) -> bool:
+    def eval_condition(self, expression: str, engine: 'BuildEngine') -> bool:
         pass
 
 
 class IfDirective(BaseIfDirective):
-    trigger_on = "if"
+    trigger_on = ["if", "ifn"]
     trigger_negative = "ifn"
     trigger_elif = "elif"
     trigger_elif_negative = "elifn"
     trigger_else = "else"
     trigger_end = "endif"
 
-    def eval_condition(self, expression) -> bool:
-        print(expression)
+    def eval_condition(self, expression: str, engine: 'BuildEngine') -> bool:
+        raise NotImplementedError
 
 
 class IfDefDirective(BaseIfDirective):
-    trigger_on = "ifdef"
+    trigger_on = ["ifdef", "ifndef"]
     trigger_negative = "ifndef"
     trigger_elif = "elifdef"
     trigger_elif_negative = "elifndef"
     trigger_else = "else"
     trigger_end = "endif"
 
-    def eval_condition(self, expression) -> bool:
-        print(expression)
+    def eval_condition(self, expression: str, engine: 'BuildEngine') -> bool:
+        return expression in engine.macros

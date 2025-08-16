@@ -1,7 +1,27 @@
-raise NotImplementedError
-
 import argparse
 import os, sys
+from .__main__ import motd
+
+def build_parser():
+    parser = argparse.ArgumentParser()
+
+    from importlib.metadata import version
+    parser.add_argument('--version', action='version', version=f"YapTeX {version(__package__)}")
+    parser.add_argument("input")
+    parser.add_argument("--output", default="./out", help="output directory")
+    parser.add_argument("--target", choices=["raw", "md", "html", "pdf"], default="raw", help="targeted output format")
+    parser.add_argument("-D", nargs='*', action="append", help="additional defines")
+    parser.add_argument("--pedantic", action="store_true", help="annoying yap")
+
+    prev_help = parser.print_help
+
+    def help_hook(*args, **kwargs):
+        sys.stdout.write(motd)
+        prev_help(*args, **kwargs)
+
+    parser.print_help = help_hook
+
+    return parser
 
 def run():
     parser = argparse.ArgumentParser()
