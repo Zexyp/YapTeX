@@ -34,8 +34,8 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
 
-    print("░▀▄▀▒▄▀▄▒█▀▄░▀█▀▒██▀░▀▄▀ ™")
-    print("░▒█▒░█▀█░█▀▒░▒█▒░█▄▄░█▒█")
+    log_print("░▀▄▀▒▄▀▄▒█▀▄░▀█▀▒██▀░▀▄▀ ™")
+    log_print("░▒█▒░█▀█░█▀▒░▒█▒░█▄▄░█▒█")
 
     assert os.path.isfile(args.input)
     os.makedirs(args.output, exist_ok=True)
@@ -53,13 +53,17 @@ def main():
             defines=[i for a in args.D for i in a] if args.D else None)
     except:
         log_error("build failed")
+        
+        if not args.verbose:
+            exit(1)
         raise
 
-    renderers = {
-        "md": MdRenderer,
-        "html": HtmlRenderer,
-        "pdf": PdfRenderer,
-    }
+    renderer_types = {}
+    def add_renderer_type(rend: type[Renderer]):
+        renderer_types[rend.identifier] = rend
+    add_renderer_type(MdRenderer)
+    add_renderer_type(HtmlRenderer)
+    add_renderer_type(PdfRenderer)
 
     if (args.target != "raw"):
         def render_dependencies(renderer: Renderer, file: str):
@@ -70,13 +74,16 @@ def main():
             os.makedirs(render_output, exist_ok=True)
             return renderer.render(file, render_output)
         
-        renderer = renderers[args.target]()
+        renderer = renderer_types[args.target]()
 
         log_info("rendering...")
         try:
             render_dependencies(renderer, raw_file)
         except:
             log_error("rendering failed")
+
+            if not args.verbose:
+                exit(1)
             raise
 
     log_info("done")

@@ -12,6 +12,7 @@ def build_parser():
     parser.add_argument("--target", choices=["raw", "md", "html", "pdf"], default="raw", help="targeted output format")
     parser.add_argument("-D", nargs='*', action="append", help="additional defines")
     parser.add_argument("--pedantic", action="store_true", help="annoying yap")
+    parser.add_argument("--verbose", action="store_true", help="yap on error")
 
     prev_help = parser.print_help
 

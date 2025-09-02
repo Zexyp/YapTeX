@@ -48,6 +48,9 @@ class BuildEngine:
             ErrorDirective(),
 
             CopyDirective(),
+
+            LineDirective(),
+            EmbedDirective(),
         ]
         self.directives_map: OrderedDict[str, Directive] = None
         def build_directives_map():
@@ -72,17 +75,18 @@ class BuildEngine:
             "_YEAR_": str(dtnow.year),
             "_MONTH_": str(dtnow.month),
             "_DAY_": str(dtnow.day),
-            "__FILE__": lambda: self.current_file,
-            "__LINE__": lambda: self.current_line_number,
-            "__TIME__": lambda: str(dtnow.time),
-            "__DATE__": lambda: str(dtnow.date),
+            "__FILE__": lambda: self.current_file_alias or self.current_file,
+            "__LINE__": lambda: str(self.current_file_line_number),
+            "__TIME__": str(dtnow.time()),
+            "__DATE__": str(dtnow.date()),
         }
 
         self.output: TextIOWrapper = None
         self.input: TextIOWrapper = None
 
         self.current_file: str = None
-        self.current_line_number: str = None
+        self.current_file_line_number: int = None
+        self.current_file_alias: str | None = None
 
         self.pedantic = False
 
@@ -124,6 +128,7 @@ class BuildEngine:
                 self.output = file
                 self.process_file(source_file)
                 self.output = None
+            # TODO: better assertion
             except AssertionError as ex:
                 self.log_file_error(f"{ex}")
                 raise
@@ -133,6 +138,7 @@ class BuildEngine:
 
         return out_file
 
+    # handle all stuff on line
     def process_line(self, line):
         self.log_line("processing line: " + repr(line))
 
@@ -155,6 +161,7 @@ class BuildEngine:
 
         return ""
 
+    # execute a directive
     def handle_directive(self, line):
         m = re.match("^#([a-z]+)", line)
         if m:
@@ -167,7 +174,7 @@ class BuildEngine:
             directive.handle(line.removeprefix(DIRECTIVE_CHAR), self)
             return ""
 
-        # pedantic
+        # possible header
         elif not line.startswith(f"{DIRECTIVE_CHAR} "):
             self.pedantic_log_file("unreadable directive")
 
@@ -190,20 +197,18 @@ class BuildEngine:
                 first_line = False
 
                 if line.startswith(PAGE_HEADER_SEPARATOR):
-                    self.log_debug("parsing page header")
+                    self.log_debug("page header started")
                     reading_page_header = True
                     continue
 
-            if reading_page_header is True:
+            if reading_page_header == True:
                 if line.startswith(PAGE_HEADER_SEPARATOR):
                     reading_page_header = False
+                    self.log_debug("parsing page header")
+                    print(yaml.safe_load(page_header_string))
                     continue # skip this line
                 page_header_string += line
                 continue
-            if reading_page_header == False:
-                reading_page_header = None
-                self.log_debug("parsing page header")
-                yaml.safe_load(page_header_string)
 
             self.feed(line)
             first_line = False
@@ -214,31 +219,34 @@ class BuildEngine:
     def process_file(self, filepath):
         self.log_info(f"processing '{filepath}'")
 
-        assert os.path.isfile(filepath), f"file {filepath} does not exist"
+        assert os.path.isfile(filepath), f"file '{filepath}' does not exist"
 
         with open(filepath, mode='r', encoding="utf8") as file:
             last_file = self.current_file
+            last_line = self.current_file_line_number
 
             self.current_file = filepath
+            #self.current_file_line_number (is set in process stream)
+            self.filestack.append(filepath)
 
             self.process_stream(file)
 
             self.current_file = last_file
+            self.current_file_line_number = last_line
+            self.filestack.pop()
 
     # reads a line from current file
     def consume(self) -> Generator[str, None, None]:
         initial_sections_count = len(self.sectionstack)
-        line_number = 0
+        self.current_file_line_number = 0
         while line := self.input.readline():
-            line_number += 1
-            self.current_line_number = line_number
+            self.current_file_line_number += 1
             yield line
         else:
             if len(self.sectionstack) != initial_sections_count:
                 self.log_warning(f"unended sections {self.sectionstack} (ignore this if in macro)")
 
-        self.current_line_number = None
-        self.lines = None
+        self.current_file_line_number = None
         return None
 
     # adds line to be processed
@@ -247,8 +255,8 @@ class BuildEngine:
         assert line is not None
         self.log_line("writing: " + repr(line))
         self.output.write(line)
-
-    # adds raw line
+    
+    # adds raw
     def feed_raw(self, line: str):
         assert line is not None
         self.log_line("writing raw: " + repr(line))
@@ -259,7 +267,7 @@ class BuildEngine:
         if not vars:
             return body
 
-        def place_variable(modifier, variable_name):
+        def place_variable(variable_name, modifier):
 
             assert variable_name in variable_name, "undefined variable"
 
@@ -269,17 +277,19 @@ class BuildEngine:
                 value = value()
 
             if modifier:
-                assert modifier in self.format_modifiers
+                assert modifier in self.format_modifiers, f"unknown format modifier '{modifier}'"
                 value = self.format_modifiers[modifier](value)
 
             return value
 
-        pattern = rf'{VARIABLE_CHAR}({"|".join([re.escape(vn) for vn in vars])})(?:(\\)|{VARIABLE_FORMAT_SEPARATOR}({"|".join([re.escape(f.id) for f in self.format_modifiers])}))?'
-        result = re.sub(pattern, lambda m: place_variable(m.group(3), m.group(1)), body)
+        # for now all modifiers are lowercase
+        pattern = rf'{VARIABLE_CHAR}({"|".join([re.escape(vn) for vn in vars])})(?:({REGEX_ESCAPE_CHAR})?({VARIABLE_FORMAT_SEPARATOR}([a-z]+)))?'
+        result = re.sub(pattern, lambda m: place_variable(m.group(1), m.group(4) if m.group(2) else None) + (m.group(3) if m.group(2) else ""), body)
         if VARIABLE_CHAR in result:
             self.log_file_warning(f"unresolved variable")
         return result
 
+    # handles macros on line
     def handle_macros(self, line) -> str:
         self.log_line("line for macro handling: " + repr(line))
         # fully handles a macro
@@ -330,7 +340,7 @@ class BuildEngine:
         raise NotImplemented
 
     def format_file_position(self):
-        return f"{self.current_file}:{self.current_line_number}"
+        return f"{self.current_file}:{self.current_file_line_number}"
 
     def format_file_msg(self, msg):
         return f"- {self.format_file_position()}: {msg}"

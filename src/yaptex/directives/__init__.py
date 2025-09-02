@@ -8,8 +8,6 @@ from datetime import datetime
 
 from ..utils import *
 
-# #pragma nest
-
 class Directive(ABC):
     trigger_on: list[str] = None
 
@@ -30,28 +28,15 @@ class ArgDirective(Directive):
 from .ifs import *
 from .messages import *
 from .defines import *
+from .variables import *
+from .files import *
 
-class IncludeDirective(Directive):
-    trigger_on = ["include"]
+class PragmaDirective(Directive):
+    trigger_on = "pragma"
 
     def handle(self, line, engine):
-        m = re.match(rf'^include\s+({REGEX_QUOTED})$', line)
-        assert m, "malformed"
-
-        filepath = str_unescape(m.group(1))
-
-        assert engine.current_file
-
-        filepath = os.path.normpath(os.path.join(os.path.dirname(engine.current_file), filepath))
-
-        assert os.path.isfile(filepath), f"file '{filepath}' does not exist"
-        assert filepath not in engine.filestack, "cyclic include"
-
-        engine.filestack.append(filepath)
-
-        engine.process_file(os.path.join(os.path.dirname(engine.current_file), m.group(1)))
-
-        engine.filestack.pop()
+        # #pragma nest
+        raise NotImplementedError
 
 
 class RegionDirective(Directive):
@@ -61,7 +46,7 @@ class RegionDirective(Directive):
         m = re.match(rf'^region\s+({REGEX_QUOTED})$', line)
         assert m, "malformed"
 
-        section_name = str_unescape(m.group(1))
+        section_name = str_unescape(m.group(1).strip(QUOTE_CHAR))
 
         engine.sectionstack.append(section_name)
 
@@ -85,29 +70,6 @@ class EndRegionDirective(Directive):
         engine.sectionstack.pop()
 
 
-class CopyDirective(Directive):
-    trigger_on = ["copy"]
-
-    def handle(self, line, engine):
-        m = re.match(rf'^copy\s+({REGEX_QUOTED})\s+({REGEX_QUOTED})$', line)
-        assert m, "malformed"
-
-        what_file = str_unescape(m.group(1))
-        to_dir = str_unescape(m.group(2))
-
-        src_file = os.path.join(os.path.dirname(engine.current_file), what_file)
-        assert os.path.isfile(src_file), f"file '{src_file}' does not exist"
-
-        dest_dir = os.path.join(engine.path_dir_output, to_dir)
-        if not os.path.isdir(dest_dir):
-            os.makedirs(dest_dir)
-
-        import shutil
-
-        engine.log_info(f"copying file '{src_file}' to '{dest_dir}'")
-        shutil.copy2(src_file, dest_dir)
-
-
 class PageBreakDirective(Directive):
     trigger_on = ["pagebreak"]
 
@@ -116,64 +78,17 @@ class PageBreakDirective(Directive):
         engine.feed_raw('<div style="page-break-before: always;"></div>\n') #<pdf:nextpage/>
 
 
-class SetDirective(Directive):
-    trigger_on = ["set"]
+class LineDirective(Directive):
+    trigger_on = ["line"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^set\s+({REGEX_IDENTIFIER})(?:\s+|\s*=\s*)({REGEX_QUOTED}|{REGEX_NUMBER_INT})',
-                     line)  # $ is buggy
+        pattern = rf'^line\s+({REGEX_NUMBER_INT})(?:\s+({REGEX_QUOTED}))?$'
+        m = re.match(pattern, line)
         assert m, "malformed"
 
-        variable_name = m.group(1)
-        variable_value = str_unescape(m.group(2) or "").strip(QUOTE_CHAR)
-
-        engine.variables[variable_name] = variable_value
-
-# does not go into negatives
-def _modify_last(text, increment):
-    mchs = list(re.finditer(REGEX_NUMBER_INT, text))
-    if not mchs:
-        return (text + str(increment)) if increment > 0 else text
-
-    last = mchs[-1]
-    start, end = last.span()
-    old = text[start:end]
-    value = int(old) + increment
-    return text[:start] + (str(value) if value > 0 else "") + text[end:]
-
-class IncrementDirective(Directive):
-    trigger_on = ["inc"]
-
-    def handle(self, line, engine):
-        m = re.match(rf'^inc\s+({REGEX_IDENTIFIER})(?:\s+({REGEX_NUMBER_INT}))?$', line)
-        assert m, "malformed"
-
-        variable_name = m.group(1)
-        by = m.group(2)
-
-        assert variable_name in engine.variables, f"undefined variable '{variable_name}'"
+        line_number = m.group(1)
+        filename = m.group(2)
         
-        increment = int(by) if by else 1
-        last_value = engine.variables[variable_name]
-        new_value = str(int(last_value) + increment) if re.match(REGEX_NUMBER_INT, last_value) else _modify_last(last_value, increment)
-
-        engine.variables[variable_name] = new_value
-
-
-class DecrementDirective(Directive):
-    trigger_on = ["dec"]
-
-    def handle(self, line, engine):
-        m = re.match(rf'^dec\s+({REGEX_IDENTIFIER})(?:\s+({REGEX_NUMBER_INT}))?$', line)
-        assert m, "malformed"
-
-        variable_name = m.group(1)
-        by = m.group(2)
-
-        assert variable_name in engine.variables, f"undefined variable '{variable_name}'"
-
-        increment = -(int(by) if by else 1)
-        last_value = engine.variables[variable_name]
-        new_value = str(int(last_value) + increment) if re.match(REGEX_NUMBER_INT, last_value) else _modify_last(last_value, increment)
-
-        engine.variables[variable_name] = new_value
+        engine.current_file_line_number = int(line_number) - 1
+        if filename is not None:
+            engine.current_file_alias = filename

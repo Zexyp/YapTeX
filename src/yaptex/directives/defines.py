@@ -24,6 +24,7 @@ class DefineDirective(Directive):
         mac = Macro()
         mac.params = None
         mac.body = body_line
+        mac.file = engine.currnet_file
 
         if macro_params:
             mac.params = [x.strip() for x in macro_params.strip("()").split(MACRO_ARG_SEPARATOR)]
@@ -31,8 +32,9 @@ class DefineDirective(Directive):
         def eat_macro():
             for body_line in engine.consume():
                 # allow leading spaces
+                # TODO: handle better
                 if body_line.startswith(ESCAPE_CHAR):
-                    body_line = body_line.removeprefix(ESCAPE_CHAR).removesuffix('\n')
+                    body_line = body_line.removeprefix(ESCAPE_CHAR).rstrip()
                 else:
                     body_line = body_line.strip()
 

@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
-from yaptex.utils import *
+from ..utils import *
+from .. import expressions
 from . import Directive
 
 
@@ -22,7 +23,7 @@ class BaseIfDirective(Directive):
     # build with mindset that negatives are longer
     def handle(self, line: str, engine: 'BuildEngine') -> str | None:
         negate_eval = line.startswith(self.trigger_negative)
-        expression = removeprefixes(line, self.trigger_on).strip()
+        expression = remove_one_of_prefixes(line, self.trigger_on).strip()
         eval_result = self.eval_condition(expression, engine)
         eval_result = not eval_result if negate_eval else eval_result
 
@@ -47,7 +48,7 @@ class BaseIfDirective(Directive):
                 eval_result = self.eval_condition(expression, engine)
                 eval_result = not eval_result if negate_eval else eval_result
 
-                should_feed = True if eval_result else (None if should_feed is None else False)
+                should_feed = False if should_feed else (True if eval_result else None)
 
                 continue
 
@@ -96,4 +97,4 @@ class IfDefDirective(BaseIfDirective):
     trigger_end = "endif"
 
     def eval_condition(self, expression: str, engine: 'BuildEngine') -> bool:
-        return expression in engine.macros
+        return expressions.evaluate_expression(expression, valuator=lambda name: name in engine.macros)

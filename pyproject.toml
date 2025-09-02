@@ -3,8 +3,8 @@ requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "YapTex"
-version = "0.0.2"
+name = "YapTeX"
+version = "0.1.0"
 description = "Markdown and plain text preprocessor."
 authors = [
   { name="Zexyp", email="placeholder@localhost.cz" },

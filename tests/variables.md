@@ -11,6 +11,8 @@
 %file:bn
 %file:dn
 
+%file\:esc
+
 #inc var
 %var
 #inc var
@@ -34,3 +36,11 @@
 %num
 #dec num
 %num
+
+%_YEAR_
+%_MONTH_
+%_DAY_
+%__FILE__
+%__LINE__
+%__TIME__
+%__DATE__
