@@ -20,6 +20,7 @@ class MdRenderer(Renderer):
     # post processing options
     def render(self, file: str, output_dir: str):
         # TODO: strip style
+        # TODO: colorful headers
         dest = os.path.join(output_dir, "index.md")
         import shutil
         print("laziness")
@@ -68,6 +69,7 @@ class HtmlRenderer(Renderer):
             return pygments.highlight(content, lexer, formatter)
 
         md = MarkdownIt("commonmark", {"linkify": True})
+        mdit_py_plugins.dollarmath.dollarmath_plugin(md, )
         md.enable(["linkify", "table"])
         md.options.highlight = highlight
         with open(file, mode='r', encoding="utf8") as source:

@@ -85,7 +85,7 @@ class IfDirective(BaseIfDirective):
     trigger_end = "endif"
 
     def eval_condition(self, expression: str, engine: 'BuildEngine') -> bool:
-        raise NotImplementedError
+        return expressions.evaluate_expression(expression, valuator=lambda name: name in engine.variables and engine.variables[name])
 
 
 class IfDefDirective(BaseIfDirective):

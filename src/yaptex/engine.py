@@ -115,8 +115,8 @@ class BuildEngine:
                 m.params = None
                 self.macros[k] = m
 
-        assert os.path.isfile(source_file)
-        assert os.path.isdir(output_dir)
+        assert os.path.isfile(source_file), f"not a file '{source_file}'"
+        assert os.path.isdir(output_dir), f"not a dir '{output_dir}'"
 
         self.path_dir_source = os.path.dirname(source_file)
         self.path_dir_output = output_dir

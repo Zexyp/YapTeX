@@ -7,7 +7,7 @@ from ..utils import *
 class DefineDirective(Directive):
     trigger_on = ["define"]
 
-    # todo: add elipsis, multiline fuckery (escaping)
+    # todo: add elipsis (variable args)
     def handle(self, line, engine):
         pattern = rf'^define\s+({REGEX_IDENTIFIER})(\(\s*{REGEX_IDENTIFIER}\s*(?:{REGEX_MACRO_ARG_SEPARATOR}\s*{REGEX_IDENTIFIER}\s*)*\))?(?:\s+(.*?)({REGEX_MACRO_LINE_CONTINUE})?)?$'
         m = re.match(pattern, line)

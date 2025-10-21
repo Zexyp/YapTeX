@@ -1,11 +1,11 @@
 ## positive
-\#if yeet_priority
-\yeet priority
-\#elif yes
-\yes
-\#else
-\no
-\#endif
+#if yeet_priority
+yeet priority
+#elif yes
+yes
+#else
+no
+#endif
 
 ### def
 #ifdef def_yeet_priority
@@ -17,13 +17,13 @@ def no
 #endif
 
 ## negative
-\#ifn yeet_priority
-\not yeet priority
-\#elif yes
-\not yes
-\#else
-\no
-\#endif
+#ifn yeet_priority
+not yeet priority
+#elif yes
+not yes
+#else
+no
+#endif
 
 ### def
 #ifndef def_yeet_priority
