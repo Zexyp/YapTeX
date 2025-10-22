@@ -49,8 +49,13 @@ def main():
     log_info("building...")
     builder.configure(pedantic=args.pedantic)
     try:
-        raw_file = builder.build(args.input, build_dir,
-            defines=[i for a in args.D for i in a] if args.D else None)
+        try:
+            raw_file = builder.build(args.input, build_dir,
+                                     defines=[i for a in args.D for i in a] if args.D else None)
+        except NotImplementedError as e:
+            log_error("lazy fuck detection tripped")
+            log_error(f"{type(e).__name__}: {str(e)}")
+            raise
     except:
         log_error("build failed")
         

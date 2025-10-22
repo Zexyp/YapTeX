@@ -38,7 +38,7 @@ When using directives then the `#` symbol must be the first symbol of the line. 
 #section "Using Variables"
 Varibles can be placed anywhere using the `%` symbol as a prefix.
 ```md
-%HELLO
+\%HELLO
 ```
 
 There are multiple variable formatting options while pasting. You can access them by prefixing the prefix symbol.
@@ -57,16 +57,16 @@ There are multiple variable formatting options while pasting. You can access the
 #set _HELLO "C:/Users/faFa/je \"cYp\"?.txt"
 
 ```
-l%HELLO -> l%_HELLO
-u%HELLO -> u%_HELLO
-t%HELLO -> t%_HELLO
+\%{HELLO:l} -> \%{_HELLO:l}
+\%{HELLO:u} -> \%{_HELLO:u}
+\%{HELLO:t} -> \%{_HELLO:t}
 
-bn%HELLO -> bn%_HELLO
-dn%HELLO -> dn%_HELLO
+\%{HELLO:bn} -> \%{_HELLO:bn}
+\%{HELLO:dn} -> \%{_HELLO:dn}
 
-html%HELLO -> html%_HELLO
-id%HELLO   -> id%_HELLO
-esc%HELLO  -> esc%_HELLO
+\%{HELLO:html} -> \%{_HELLO:html}
+\%{HELLO:id}   -> \%{_HELLO:id}
+\%{HELLO:esc}  -> \%{_HELLO:esc}
 ```
 
 #section "Special Variables"

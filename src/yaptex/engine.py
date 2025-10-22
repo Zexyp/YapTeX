@@ -1,14 +1,8 @@
-import os
-import re
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from io import TextIOWrapper, StringIO
-from typing import Generator, Any
-import sys
-from datetime import datetime
+import io
 from typing import Callable
 from collections import OrderedDict
 import html
+# TODO: import logging
 
 import yaml
 
@@ -149,17 +143,17 @@ class BuildEngine:
         if line.startswith(DIRECTIVE_CHAR):
             return self.handle_directive(line)
 
-        if line:
-            line = self.handle_variables(line, self.variables)
-            line = self.handle_macros(line)
+        if not line:
+            return ""
 
-            # directive char escaping
-            if line.startswith(f"{DIRECTIVE_ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
-                line = line.removeprefix(DIRECTIVE_ESCAPE_CHAR)
+        line = self.handle_variables(line, self.variables)
+        line = self.handle_macros(line)
 
-            return line
+        # directive char escaping
+        if line.startswith(f"{DIRECTIVE_ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
+            line = line.removeprefix(DIRECTIVE_ESCAPE_CHAR)
 
-        return ""
+        return line
 
     # execute a directive
     def handle_directive(self, line):
@@ -199,19 +193,20 @@ class BuildEngine:
                 if line.startswith(PAGE_HEADER_SEPARATOR):
                     self.log_debug("page header started")
                     reading_page_header = True
-                    continue
+                    continue # skip this line
 
+            # header eating
             if reading_page_header == True:
                 if line.startswith(PAGE_HEADER_SEPARATOR):
                     reading_page_header = False
                     self.log_debug("parsing page header")
                     print(yaml.safe_load(page_header_string))
+                    raise NotImplementedError
                     continue # skip this line
-                page_header_string += line
+                page_header_string += line # eat
                 continue
 
             self.feed(line)
-            first_line = False
 
         self.input = last_input
 
@@ -262,14 +257,14 @@ class BuildEngine:
         self.log_line("writing raw: " + repr(line))
         self.output.write(line)
 
-    # replaces variables with values
-    def handle_variables(self, body: str, vars: dict[str, str]):
+    # replaces variables with their values
+    def handle_variables(self, body: str, vars: dict[str, str]) -> str:
         if not vars:
             return body
 
         def place_variable(variable_name, modifier):
 
-            assert variable_name in variable_name, "undefined variable"
+            assert variable_name in vars, f"variable '{variable_name}' not defined"
 
             value = vars[variable_name]
             if callable(value):
@@ -283,10 +278,15 @@ class BuildEngine:
             return value
 
         # for now all modifiers are lowercase
-        pattern = rf'{VARIABLE_CHAR}({"|".join([re.escape(vn) for vn in vars])})(?:({REGEX_ESCAPE_CHAR})?({VARIABLE_FORMAT_SEPARATOR}([a-z]+)))?'
-        result = re.sub(pattern, lambda m: place_variable(m.group(1), m.group(4) if m.group(2) else None) + (m.group(3) if m.group(2) else ""), body)
+        # fixme: merge subs
+        pattern = rf'(?<!{REGEX_ESCAPE_CHAR}){REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
+        result = re.sub(pattern, lambda m: place_variable(m.group(2) or m.group(3), m.group(4)), body)
+        # cleanup
+        result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
+
         if VARIABLE_CHAR in result:
-            self.log_file_warning(f"unresolved variable")
+            self.log_file_warning(f"scareware: unresolved variable")
+
         return result
 
     # handles macros on line
@@ -302,35 +302,41 @@ class BuildEngine:
             body = m.body
             action = m.action
 
-            if macro_args:
-                args = [x.strip() for x in macro_args.strip("()").split(MACRO_ARG_SEPARATOR)]
+            try:
+                if macro_args:
+                    # clean and split args
+                    args = [x.strip() for x in macro_args.strip("()").split(MACRO_ARG_SEPARATOR)]
 
-                assert len(args) == len(m.params), "invalid number of arguments given"
+                    assert len(args) == len(m.params), "invalid number of arguments given"
 
-                # action fuckery
-                if action:
-                    assert body is None, "unusable body"
-                    action(args, self)
-                elif body is not None:
-                    body = self.handle_variables(body, dict(zip(m.params, args)))
-                else:
-                    assert False, "useless macro"
+                    # action fuckery
+                    if action:
+                        assert body is None, "unusable body"
+                        action(args, self)
+                    elif body is not None:
+                        body = self.handle_variables(body, dict(zip(m.params, args)))
+                    else:
+                        assert False, "useless macro"
 
-            result = ""
-            if body:
-                try:
+                if body:
                     # file context not possible due to relative paths
-                    result = self.process_line(body)
-                except:
-                    self.log_file_warning(f"during '{macro_name}' macro expansion an error occurred")
-                    raise
+                    for body_line in re.split(r'(\n)', body):
+                        self.feed(body_line)
+            except:
+                self.log_file_warning(f"during '{macro_name}' macro expansion an error occurred")
+                raise
 
-            return result
+            return "" # does not return anything usable
 
-        pattern = rf'{REGEX_MACRO_CHAR}({"|".join([re.escape(mn) for mn in self.macros.keys()])})(\s*\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
+        # TODO: kwargs
+        # fixme: merge subs
+        pattern = rf'(?<!{REGEX_ESCAPE_CHAR}){REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\s*\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
         result = re.sub(pattern, lambda m: place_macro(m.group(1), m.group(2)), line)
+        # cleanup
+        result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
+
         if MACRO_CHAR in result:
-            self.log_file_warning(f"unresolved macro")
+            self.log_file_warning(f"scareware: unresolved macro")
 
         return result
 

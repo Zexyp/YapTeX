@@ -24,7 +24,7 @@ class DefineDirective(Directive):
         mac = Macro()
         mac.params = None
         mac.body = body_line
-        mac.file = engine.currnet_file
+        mac.file = engine.current_file
 
         if macro_params:
             mac.params = [x.strip() for x in macro_params.strip("()").split(MACRO_ARG_SEPARATOR)]

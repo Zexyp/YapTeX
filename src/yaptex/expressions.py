@@ -67,7 +67,7 @@ def parse(tokens):
         if token == '(':
             expr = parse_expression()
             if not tokens or tokens.pop(0) != ')':
-                raise ValueError("Expected ')'")
+                raise ValueError("expected ')'")
             return expr
         elif token == '!':
             operand = parse_expression(OPERATORS['!'].precedence)
@@ -78,8 +78,8 @@ def parse(tokens):
             return False
         elif token.isdigit():
             return int(token)
-        else:
-            return token  # variable
+        else: # variable
+            return token
 
     return parse_expression()
 
@@ -92,7 +92,7 @@ def evaluate(ast, context, valuator = None):
         
         val = context.get(ast)
         if val is None:
-            raise ValueError(f"Undefined variable: {ast}")
+            raise ValueError(f"undefined variable: {ast}")
         return val
     
     if isinstance(ast, tuple):
@@ -103,9 +103,10 @@ def evaluate(ast, context, valuator = None):
             op, left, right = ast
             return OPERATORS[op].func(evaluate(left, context, valuator), evaluate(right, context, valuator))
     
-    raise ValueError(f"Invalid AST node: {ast}")
+    raise ValueError(f"invalid ast node: {ast}")
 
-def evaluate_expression(expr, context={}, valuator: Callable[[str], Any] = None):
+def evaluate_expression(expr, context: dict = None, valuator: Callable[[str], Any] = None):
+    context = context or {}
     tokens = tokenize(expr)
     ast = parse(tokens)
     return evaluate(ast, context, valuator)

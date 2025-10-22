@@ -1,8 +1,8 @@
-#DECLARE_DIRECTIVE(`#include "<filepath>"`)
+?DECLARE_DIRECTIVE(`#include "<filepath>"`)
 
 Includes another file.
 ```md
 \#include "some/other/file.md"
 ```
 
-#DECLARE_END_DIRECTIVE
+?DECLARE_END_DIRECTIVE

@@ -1,4 +1,4 @@
-#DECLARE_DIRECTIVE(`#set <VARIABLE> {"<value>",<number>}`)
+?DECLARE_DIRECTIVE(`#set <VARIABLE> {"<value>",<number>}`)
 
 Sets a custom variable
 ```md
@@ -6,4 +6,4 @@ Sets a custom variable
 \#set HELLO_VAR2 0
 ```
 
-#DECLARE_END_DIRECTIVE
+?DECLARE_END_DIRECTIVE

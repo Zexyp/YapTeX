@@ -1,15 +1,5 @@
-#define DECLARE_DIRECTIVE(NAME)
-#section "esc%NAME"
-#enddef
+#define DECLARE_DIRECTIVE(NAME) #section "%{NAME:esc}"
 
-#define DECLARE_END_DIRECTIVE
-#endsect
----
+#define DECLARE_END_DIRECTIVE #endsect\
+---\
 
-#enddef
-
-#define PLACE_DECLARED
-<ul>
-%LIST_DIRECTIVES
-<ul>
-#enddef

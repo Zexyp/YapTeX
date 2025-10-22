@@ -1,4 +1,4 @@
-#DECLARE_DIRECTIVE(`#if "<VARIABLE>"` `#elif "<VARIABLE>"` `#else` `#endif`)
+?DECLARE_DIRECTIVE(`#if "<VARIABLE>"` `#elif "<VARIABLE>"` `#else` `#endif`)
 
 Includes content if variable is defined and isn't empty (or not zero). Also needs to be ended like other block directives.
 ```md
@@ -11,4 +11,4 @@ I have no idea what's going on...
 \#endif
 ```
 
-#DECLARE_END_DIRECTIVE
+?DECLARE_END_DIRECTIVE

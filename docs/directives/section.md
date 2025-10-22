@@ -1,4 +1,4 @@
-#DECLARE_DIRECTIVE(`#section "<name>"` `#endsect`)
+?DECLARE_DIRECTIVE(`#section "<name>"` `#endsect`)
 
 Creates a section. Sections are converted into headers with regard to depth.
 ```md
@@ -7,4 +7,4 @@ Wolrd
 \#endsect
 ```
 
-#DECLARE_END_DIRECTIVE
+?DECLARE_END_DIRECTIVE

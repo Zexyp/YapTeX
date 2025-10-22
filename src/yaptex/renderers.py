@@ -6,6 +6,8 @@ from .log import *
 
 HTML_ENCODING = "utf8"
 
+# TODO: add flavoring
+
 class Renderer(ABC):
     depends_on = None
     identifier = None
