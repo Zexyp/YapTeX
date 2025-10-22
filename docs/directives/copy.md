@@ -1,6 +1,6 @@
 ?DECLARE_DIRECTIVE(`#copy "<what>" "<where>"`)
 
-Copies a gived file to directory relative to the output directory. Mostly used for asset management.
+Copies a given file into directory that is relative to output directory. Mostly used for asset management.
 ```md
 \#copy "images/memisek.jpg" "assets"
 ```

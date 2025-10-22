@@ -2,7 +2,6 @@ import re
 
 ESCAPE_CHAR: str = '\\'
 DIRECTIVE_CHAR: str = '#'
-DIRECTIVE_ESCAPE_CHAR: str = ESCAPE_CHAR
 VARIABLE_CHAR: str = '%'
 VARIABLE_FORMAT_SEPARATOR: str = ':'
 QUOTE_CHAR: str = '\"'

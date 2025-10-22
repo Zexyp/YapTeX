@@ -6,3 +6,12 @@ Prints a message while building.
 ```
 
 ?DECLARE_END_DIRECTIVE
+
+?DECLARE_DIRECTIVE(`#error "<message>"`)
+
+Prints a message and stops the build.
+```md
+\#warning "Whoops..."
+```
+
+?DECLARE_END_DIRECTIVE

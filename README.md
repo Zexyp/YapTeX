@@ -1,6 +1,5 @@
 
 
-
 # YapTeX
 **YapTeX** is a **Markdown** and *plain text* preprocessor. It's **the** very cool and simple overcomplicated solution.
 
@@ -20,50 +19,91 @@ When using directives then the `#` symbol must be the first symbol of the line. 
 ### Basic Directives
 #### `#include "<filepath>"`
 
+
 Includes another file.
 ```md
 #include "some/other/file.md"
 ```
 
+
 ---
 
-#### `#section "<name>"` `#endsect`
 
-Creates a section. Sections are converted into headers with regard to depth.
+#### `#embed "<filepath>"`
+
+
+Includes another file raw without processing it.
 ```md
-#section "Hello"
-Wolrd
-#endsect
+#embed "some/other/file.txt"
 ```
 
+
+---
+#### `#region "<name>"`
+
+
+Creates a section. Sections are converted into headers with regard to depth.
+You of course must end it.
+```md
+#region "Hello"
+Wolrd
+#endregion
+```
+
+If you want to dynamically select the current depth of a title you can use `-#`
+```md
+-# Hello
+```
+
+
 ---
 
-#### `#define <NAME>[(<ARG>...)]` `#enddef`
+#### `#define <NAME>[(<ARG>...)]`
+
 
 Using this directive you can create macros.
 ```md
-#define MACRO
-Hello World!
-#enddef
+#define MACRO Hello World!
+```
+
+To evaluate it use `?`.
+```md
+?MACRO
 ```
 
 You can also pass in arguments to make it even more dynamic!
 ```md
-#define GREET(NAME; LASTNAME)
-Hello %NAME %LASTNAME!
-#enddef
+#define GREET(NAME; LASTNAME) Hello %NAME %LASTNAME!
 
-#GREET(Bingus; Dingus)
+?GREET(Bingus; Dingus)
 ```
+
+For multiline ones escape the new line.
+```md
+#define GIB_LIST \
+- A\
+- B\
+- C
+
+?GIB_LIST
+```
+
+You can also remove defines.
+```md
+#undef HELLO
+```
+
 
 ---
 
 #### `#pagebreak`
 
-Insert page braking feature.
+
+Insert page breaking feature.
 ```md
 #pagebreak
 ```
+
 
 ---
 
@@ -71,20 +111,37 @@ Insert page braking feature.
 ### Variable Directives
 #### `#set <VARIABLE> {"<value>",<number>}`
 
+
 Sets a custom variable
 ```md
 #set HELLO_VAR1 "text"
 #set HELLO_VAR2 0
 ```
 
+
 ---
 
-#### `#increment <VARIABLE> <by>`
 
-Increments a given variable by specified amount.
+#### `#inc <VARIABLE> [by]`
+
+
+Increments a given variable by specified amount (default is 1).
 ```md
-#increment HELLO_VAR 1
+#inc HELLO_VAR 1
 ```
+
+
+---
+
+
+#### `#dec <VARIABLE> [by]`
+
+
+Decrements a given variable by specified amount (default is 1).
+```md
+#dec HELLO_VAR 1
+```
+
 
 ---
 
@@ -92,14 +149,18 @@ Increments a given variable by specified amount.
 ### Advanced Directives
 #### `#copy "<what>" "<where>"`
 
-Copies a gived file to directory relative to the output directory. Mostly used for asset management.
+
+Copies a given file into directory that is relative to output directory. Mostly used for asset management.
 ```md
 #copy "images/memisek.jpg" "assets"
 ```
 
+
 ---
 
 #### `#if "<VARIABLE>"` `#elif "<VARIABLE>"` `#else` `#endif`
+
+
 
 Includes content if variable is defined and isn't empty (or not zero). Also needs to be ended like other block directives.
 ```md
@@ -112,14 +173,59 @@ I have no idea what's going on...
 #endif
 ```
 
+
 ---
 
+
+#### `#ifdef <DEFINE>`
+
+
+Includes content if defined and not empty (or not zero).
+Needs end directive like other block directives.
+```md
+#ifdef HELLO
+HELLO set
+#elifdef BYE
+BYE set
+#else
+I have no idea what's going on...
+#endif
+```
+
+Also `#ifndef` and `#elifndef` can be used with inverted evaluation.
+Some boolean operator can be used.
+```md
+#ifdef HELLO && BYE
+What's going on
+#endif
+
+#ifndef HELLO || BYE
+Nothing is defined :(
+#endif
+```
+
+
+---
 #### `#warning "<message>"`
+
 
 Prints a message while building.
 ```md
 #warning "We are doing number of cool things..."
 ```
+
+
+---
+
+
+#### `#error "<message>"`
+
+
+Prints a message and stops the build.
+```md
+#warning "Whoops..."
+```
+
 
 ---
 
@@ -145,16 +251,16 @@ There are multiple variable formatting options while pasting. You can access the
 
 
 ```
-l%HELLO -> c:/users/fafa/je "cyp"?.txt
-u%HELLO -> C:/USERS/FAFA/JE "CYP"?.TXT
-t%HELLO -> C:/Users/Fafa/Je "Cyp"?.Txt
+%{HELLO:l} -> c:/users/fafa/je "cyp"?.txt
+%{HELLO:u} -> C:/USERS/FAFA/JE "CYP"?.TXT
+%{HELLO:t} -> C:/Users/Fafa/Je "Cyp"?.Txt
 
-bn%HELLO -> je "cYp"?.txt
-dn%HELLO -> C:/Users/faFa
+%{HELLO:bn} -> je "cYp"?.txt
+%{HELLO:dn} -> C:/Users/faFa
 
-html%HELLO -> C:/Users/faFa/je &quot;cYp&quot;?.txt
-id%HELLO   -> cusersfafaje-cyptxt
-esc%HELLO  -> C:/Users/faFa/je \"cYp\"?.txt
+%{HELLO:html} -> C:/Users/faFa/je &quot;cYp&quot;?.txt
+%{HELLO:id}   -> cusersfafaje-cyptxt
+%{HELLO:esc}  -> C:/Users/faFa/je \"cYp\"?.txt
 ```
 
 #### Special Variables
@@ -172,7 +278,3 @@ You can use some special predefined variables.
 
 
 *This document was build using YapTeX*
-
-#### TODO
-- Consider different string quoting
-- Build targets

@@ -1,6 +1,7 @@
 import re
 
 from . import Directive
+from ..errors import MalformedError
 from ..structures import Macro
 from ..utils import *
 
@@ -11,7 +12,7 @@ class DefineDirective(Directive):
     def handle(self, line, engine):
         pattern = rf'^define\s+({REGEX_IDENTIFIER})(\(\s*{REGEX_IDENTIFIER}\s*(?:{REGEX_MACRO_ARG_SEPARATOR}\s*{REGEX_IDENTIFIER}\s*)*\))?(?:\s+(.*?)({REGEX_MACRO_LINE_CONTINUE})?)?$'
         m = re.match(pattern, line)
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         macro_name = m.group(1)
         macro_params = m.group(2)
@@ -62,7 +63,7 @@ class UndefineDirective(Directive):
     def handle(self, line, engine):
         m = re.match(rf'^undef\s+({REGEX_IDENTIFIER})$', line)
 
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         macro_name = m.group(1)
 

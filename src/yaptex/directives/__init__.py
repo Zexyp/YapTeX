@@ -7,6 +7,7 @@ import sys
 from datetime import datetime
 
 from ..utils import *
+from ..errors import *
 
 class Directive(ABC):
     trigger_on: list[str] = None
@@ -44,7 +45,7 @@ class RegionDirective(Directive):
 
     def handle(self, line, engine):
         m = re.match(rf'^region\s+({REGEX_QUOTED})$', line)
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         section_name = str_unescape(m.group(1).strip(QUOTE_CHAR))
 
@@ -84,7 +85,7 @@ class LineDirective(Directive):
     def handle(self, line, engine):
         pattern = rf'^line\s+({REGEX_NUMBER_INT})(?:\s+({REGEX_QUOTED}))?$'
         m = re.match(pattern, line)
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         line_number = m.group(1)
         filename = m.group(2)

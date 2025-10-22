@@ -1,4 +1,5 @@
 from ..utils import *
+from ..errors import *
 from . import Directive
 
 # does not go into negatives
@@ -19,7 +20,7 @@ class SetDirective(Directive):
     def handle(self, line, engine):
         m = re.match(rf'^set\s+({REGEX_IDENTIFIER})(?:\s+|\s*=\s*)({REGEX_QUOTED}|{REGEX_NUMBER_INT})',
                      line)  # $ is buggy
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         variable_name = m.group(1)
         variable_value = str_unescape((m.group(2) or "").strip(QUOTE_CHAR))
@@ -31,7 +32,7 @@ class IncrementDirective(Directive):
 
     def handle(self, line, engine):
         m = re.match(rf'^inc\s+({REGEX_IDENTIFIER})(?:\s+({REGEX_NUMBER_INT}))?$', line)
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         variable_name = m.group(1)
         by = m.group(2)
@@ -50,7 +51,7 @@ class DecrementDirective(Directive):
 
     def handle(self, line, engine):
         m = re.match(rf'^dec\s+({REGEX_IDENTIFIER})(?:\s+({REGEX_NUMBER_INT}))?$', line)
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         variable_name = m.group(1)
         by = m.group(2)

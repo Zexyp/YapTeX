@@ -1,6 +1,6 @@
 ?DECLARE_DIRECTIVE(`#pagebreak`)
 
-Insert page braking feature.
+Insert page breaking feature.
 ```md
 \#pagebreak
 ```

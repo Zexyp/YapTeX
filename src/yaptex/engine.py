@@ -123,7 +123,7 @@ class BuildEngine:
                 self.process_file(source_file)
                 self.output = None
             # TODO: better assertion
-            except AssertionError as ex:
+            except YapError as ex:
                 self.log_file_error(f"{ex}")
                 raise
 
@@ -134,24 +134,32 @@ class BuildEngine:
 
     # handle all stuff on line
     def process_line(self, line):
+        assert line is not None
+
         self.log_line("processing line: " + repr(line))
 
         # pedantic
         if re.match(r'^#+ ', line):
             self.pedantic_log_file(f"detected fixed header")
 
+        # dynamic headering
+        if m := re.match(r'^-(#+) ', line):
+            self.log_debug("dynheader")
+            line = (len(self.sectionstack) + 1) * "#" + line.removeprefix(f"-{m.group(1)}")
+
+        line = self.handle_variables(line, self.variables)
+
         if line.startswith(DIRECTIVE_CHAR):
             return self.handle_directive(line)
 
-        if not line:
-            return ""
-
-        line = self.handle_variables(line, self.variables)
         line = self.handle_macros(line)
 
         # directive char escaping
-        if line.startswith(f"{DIRECTIVE_ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
-            line = line.removeprefix(DIRECTIVE_ESCAPE_CHAR)
+        if line.startswith(f"{ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
+            line = line.removeprefix(ESCAPE_CHAR)
+        # dynheader escaping
+        if re.match(rf'^{REGEX_ESCAPE_CHAR}-(#+) ', line):
+            line = line.removeprefix(ESCAPE_CHAR)
 
         return line
 
@@ -239,13 +247,14 @@ class BuildEngine:
             yield line
         else:
             if len(self.sectionstack) != initial_sections_count:
-                self.log_warning(f"unended sections {self.sectionstack} (ignore this if in macro)")
+                self.log_warning(f"unended sections: {", ".join(f"'{s}'" for s in self.sectionstack)} (ignore this if in macro)")
 
         self.current_file_line_number = None
         return None
 
     # adds line to be processed
     def feed(self, line: str):
+        assert line is not None
         line = self.process_line(line)
         assert line is not None
         self.log_line("writing: " + repr(line))
@@ -262,9 +271,13 @@ class BuildEngine:
         if not vars:
             return body
 
-        def place_variable(variable_name, modifier):
+        def place_variable(match):
+            variable_name = match.group(2) or match.group(3)
+            modifier = match.group(4)
 
-            assert variable_name in vars, f"variable '{variable_name}' not defined"
+            if variable_name not in vars:
+                self.log_debug(f"variable '{variable_name}' is not defined")
+                return match.group()
 
             value = vars[variable_name]
             if callable(value):
@@ -279,8 +292,8 @@ class BuildEngine:
 
         # for now all modifiers are lowercase
         # fixme: merge subs
-        pattern = rf'(?<!{REGEX_ESCAPE_CHAR}){REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
-        result = re.sub(pattern, lambda m: place_variable(m.group(2) or m.group(3), m.group(4)), body)
+        pattern = rf'{REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
+        result = re.sub(rf'(?<!{REGEX_ESCAPE_CHAR})' + pattern, place_variable, body)
         # cleanup
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
 
@@ -330,8 +343,8 @@ class BuildEngine:
 
         # TODO: kwargs
         # fixme: merge subs
-        pattern = rf'(?<!{REGEX_ESCAPE_CHAR}){REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\s*\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
-        result = re.sub(pattern, lambda m: place_macro(m.group(1), m.group(2)), line)
+        pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\s*\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
+        result = re.sub(rf'(?<!{REGEX_ESCAPE_CHAR})' + pattern, lambda m: place_macro(m.group(1), m.group(2)), line)
         # cleanup
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
 

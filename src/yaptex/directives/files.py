@@ -1,6 +1,7 @@
 import os
 
 from ..utils import *
+from ..errors import *
 from . import Directive
 
 class IncludeDirective(Directive):
@@ -8,7 +9,7 @@ class IncludeDirective(Directive):
 
     def handle(self, line, engine):
         m = re.match(rf'^include\s+({REGEX_QUOTED})$', line)
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         filepath = str_unescape(m.group(1).strip(QUOTE_CHAR))
 
@@ -30,7 +31,7 @@ class EmbedDirective():
 
     def handle(self, line, engine):
         m = re.match(rf'^embed\s+({REGEX_QUOTED})$', line)
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         filepath = str_unescape(m.group(1).strip(QUOTE_CHAR))
 
@@ -53,7 +54,7 @@ class CopyDirective(Directive):
 
     def handle(self, line, engine):
         m = re.match(rf'^copy\s+({REGEX_QUOTED})\s+({REGEX_QUOTED})$', line)
-        assert m, "malformed"
+        if not m: raise MalformedError()
 
         what_file = str_unescape(m.group(1).strip(QUOTE_CHAR))
         to_dir = str_unescape(m.group(2).strip(QUOTE_CHAR))
