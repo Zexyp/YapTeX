@@ -6,7 +6,7 @@ from yaptex.engine import BuildEngine
 
 from . import RESOURCE_DIR
 
-class Test(unittest.TestCase):
+class BuildTest(unittest.TestCase):
     def setUp(self):
         self.engine = BuildEngine()
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -91,5 +91,14 @@ class Test(unittest.TestCase):
         output = os.path.join(self.temp_dir.name, "index.md")
 
         self.engine.build(source, output_dir=self.temp_dir.name, defines=["def_primary", "def_secondary"])
+
+        self._cmp_files(ref, output)
+
+    def test_heading(self):
+        source = os.path.join(RESOURCE_DIR, "source/heading.md")
+        ref = os.path.join(RESOURCE_DIR, "expected/heading.md")
+        output = os.path.join(self.temp_dir.name, "index.md")
+
+        self.engine.build(source, output_dir=self.temp_dir.name)
 
         self._cmp_files(ref, output)
