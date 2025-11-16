@@ -1,0 +1,91 @@
+{
+  "name": "yapper",
+  "displayName": "Yapper",
+  "publisher": "zexyp",
+  "description": "YapTeX editing",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "yapper.helloWorld",
+        "title": "Hello World",
+        "category": "Yapper"
+      },
+      {
+        "command": "yapper.build",
+        "title": "Build",
+        "category": "Yapper"
+      }
+    ],
+    "languages": [
+      {
+        "id": "yaptex",
+        "extensions": [".yap"],
+        "aliases": ["YapTeX"]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "yaptex",
+        "path": "./syntaxes/yaptex.json",
+        "scopeName": "source.yaptex",
+        "injectTo": ["text.html.markdown"]
+      }
+    ],
+    "snippets": [
+      {
+        "language": "markdown",
+        "path": "./snippets/yaptex.json"
+      },
+      {
+        "language": "yaptex",
+        "path": "./snippets/yaptex.json"
+      }
+    ],
+    "configuration": {
+      "title": "YapTeX",
+      "properties": {
+        "yapper.environmentPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the Python virtual environment where YapTeX is [installed](https://github.com/Zexyp/YapTeX?tab=readme-ov-file#installation).",
+          "scope": "machine-overridable",
+          "format": "path"
+        },
+        "yapper.verbose": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Run YapTeX with `--verbose` flag.",
+          "scope": "machine-overridable"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.105.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.36.0",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

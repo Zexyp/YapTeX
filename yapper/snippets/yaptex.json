@@ -1,0 +1,29 @@
+{
+    "Insert region": {
+		"prefix": "#region",
+		"body": ["#region \"${1:heading}\"", "$0", "#endregion"],
+		"description": "Insert region"
+	},
+    "Insert if": {
+		"prefix": "#if",
+		"body": ["#if ${1:condition}", "$0", "#endif"],
+		"description": "Insert region"
+	}
+    ,
+    "Insert ifdef": {
+		"prefix": "#ifdef",
+		"body": ["#ifdef ${1:condition}", "$0", "#endif"],
+		"description": "Insert region"
+	},
+    "Insert if + else": {
+		"prefix": "#ifelse",
+		"body": ["#if ${1:condition}", "$0", "#else", "", "#endif"],
+		"description": "Insert region"
+	}
+    ,
+    "Insert ifdef + else": {
+		"prefix": "#ifdefelse",
+		"body": ["#ifdef ${1:condition}", "$0", "#else", "", "#endif"],
+		"description": "Insert region"
+	}
+}
