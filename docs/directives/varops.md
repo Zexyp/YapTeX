@@ -2,8 +2,13 @@
 
 Sets a custom variable
 ```md
-\#set HELLO_VAR1 "text"
-\#set HELLO_VAR2 0
+\#set NUMERIC_VAR 0
+\#set NUMERIC_VAR=0
+\#set NUMERIC_VAR = 0
+
+\#set TEXT_VAR "text"
+\#set TEXT_VAR="text"
+\#set TEXT_VAR = "text"
 ```
 
 ?DECLARE_END_DIRECTIVE

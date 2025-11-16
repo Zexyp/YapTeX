@@ -11,7 +11,7 @@ Prints a message while building.
 
 Prints a message and stops the build.
 ```md
-\#warning "Whoops..."
+\#error "Whoops..."
 ```
 
 ?DECLARE_END_DIRECTIVE

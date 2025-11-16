@@ -1,7 +1,7 @@
 
 
 # YapTeX
-**YapTeX** is a **Markdown** and *plain text* preprocessor. It's **the** very cool and simple overcomplicated solution.
+**YapTeX** is a **Markdown** and *plain text* preprocessor. It's **the** very cool and simply overcomplicated solution.
 
 ## Features
 - Build targets
@@ -13,8 +13,13 @@
 - Macros
 - Customization
 
-## Documentation
-When using directives then the `#` symbol must be the first symbol of the line. If you want to start your line with a `#`, you will have to escape it by using a backslash (eg. `\#`).
+## Usage
+
+
+Usual markdown headers are not considered as directives.
+When using directives the `#` symbol must be the first symbol of the line.
+If you want to start your line with a `#`, you will have to escape it by using a backslash (e.g. `\#`).
+Similarly, variables and macros can be escaped.
 
 ### Basic Directives
 #### `#include "<filepath>"`
@@ -114,8 +119,13 @@ Insert page breaking feature.
 
 Sets a custom variable
 ```md
-#set HELLO_VAR1 "text"
-#set HELLO_VAR2 0
+#set NUMERIC_VAR 0
+#set NUMERIC_VAR=0
+#set NUMERIC_VAR = 0
+
+#set TEXT_VAR "text"
+#set TEXT_VAR="text"
+#set TEXT_VAR = "text"
 ```
 
 
@@ -223,7 +233,7 @@ Prints a message while building.
 
 Prints a message and stops the build.
 ```md
-#warning "Whoops..."
+#error "Whoops..."
 ```
 
 
@@ -246,11 +256,11 @@ There are multiple variable formatting options while pasting. You can access the
     - `dn`: filepath dirname
 - Special
     - `html`: html escape given value
-    - `id`: convert to id
+    - `slug`: slufify
     - `esc`: escape special characters (eg. `"`)
 
 
-```
+```md
 %{HELLO:l} -> c:/users/fafa/je "cyp"?.txt
 %{HELLO:u} -> C:/USERS/FAFA/JE "CYP"?.TXT
 %{HELLO:t} -> C:/Users/Fafa/Je "Cyp"?.Txt
@@ -259,7 +269,7 @@ There are multiple variable formatting options while pasting. You can access the
 %{HELLO:dn} -> C:/Users/faFa
 
 %{HELLO:html} -> C:/Users/faFa/je &quot;cYp&quot;?.txt
-%{HELLO:id}   -> cusersfafaje-cyptxt
+%{HELLO:slug} -> cusersfafaje-cyptxt
 %{HELLO:esc}  -> C:/Users/faFa/je \"cYp\"?.txt
 ```
 
@@ -277,4 +287,4 @@ You can use some special predefined variables.
 
 
 
-*This document was build using YapTeX*
+*This document was built using YapTeX*
