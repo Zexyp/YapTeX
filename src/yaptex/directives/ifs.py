@@ -56,7 +56,8 @@ class BaseIfDirective(Directive):
                 engine.log_directive(if_line.strip('\n'))
 
                 assert len(if_line.strip().removeprefix(self.trigger_else)) == 0, "malformed else"  # ends with new line
-                assert not found_else, "multiple else statements"
+                
+                engine.assert_that(not found_else, "multiple else statements")
                 found_else = True
 
                 if should_feed == False:
@@ -69,7 +70,7 @@ class BaseIfDirective(Directive):
             if should_feed:
                 engine.feed(if_line)
         else:
-            assert False, "unended if"
+            engine.assert_that(False, "unended if")
 
     @abstractmethod
     def eval_condition(self, expression: str, engine: 'BuildEngine') -> bool:

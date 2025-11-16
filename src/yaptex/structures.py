@@ -8,4 +8,3 @@ class Macro:
     body: str = None
     action: Callable[[list[str], 'BuildEngine'], Any] = None
     file: str = None # just for the lols
-    

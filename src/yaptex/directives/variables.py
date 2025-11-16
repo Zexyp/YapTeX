@@ -18,12 +18,12 @@ class SetDirective(Directive):
     trigger_on = ["set"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^set\s+({REGEX_IDENTIFIER})(?:\s+|\s*=\s*)({REGEX_QUOTED}|{REGEX_NUMBER_INT})',
+        m = re.match(rf'^set\s+({REGEX_IDENTIFIER})(?:\s+|\s*=\s*)({REGEX_GROUP_QUOTED}|{REGEX_NUMBER_INT})',
                      line)  # $ is buggy
         if not m: raise MalformedError()
 
         variable_name = m.group(1)
-        variable_value = str_unescape((m.group(2) or "").strip(QUOTE_CHAR))
+        variable_value = str_unescape(m.group(3) if m.group(3) is not None else m.group(2) or "")
 
         engine.variables[variable_name] = variable_value
 
@@ -37,8 +37,8 @@ class IncrementDirective(Directive):
         variable_name = m.group(1)
         by = m.group(2)
 
-        assert variable_name in engine.variables, f"undefined variable '{variable_name}'"
-        
+        engine.assert_that(variable_name in engine.variables, f"undefined variable '{variable_name}'")
+
         increment = int(by) if by else 1
         last_value = engine.variables[variable_name]
         new_value = str(int(last_value) + increment) if re.match(REGEX_NUMBER_INT, last_value) else _modify_last(last_value, increment)
@@ -56,7 +56,7 @@ class DecrementDirective(Directive):
         variable_name = m.group(1)
         by = m.group(2)
 
-        assert variable_name in engine.variables, f"undefined variable '{variable_name}'"
+        engine.assert_that(variable_name in engine.variables, f"undefined variable '{variable_name}'")
 
         increment = -(int(by) if by else 1)
         last_value = engine.variables[variable_name]

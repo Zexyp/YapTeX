@@ -1,12 +1,13 @@
-import io
-from typing import Callable
+from io import TextIOWrapper
+from typing import Callable, Generator
 from collections import OrderedDict
+from datetime import datetime
 import html
 # TODO: import logging
 
 import yaml
 
-from . import directives
+from . import directives, utils
 from .utils import *
 from .log import *
 from .structures import Macro
@@ -86,7 +87,7 @@ class BuildEngine:
 
         self.format_modifiers: dict[str, Callable[[str], str]] = {
             "html": lambda v: html.escape(v),
-            "id": lambda v: re.sub('[^a-zA-Z0-9 ]', "", v.lower()).replace(" ", "-"),
+            "slug": lambda v: utils.slugify(v),
             "esc": lambda v: str_escape(v),
             "bn": lambda v: os.path.basename(v),
             "dn": lambda v: os.path.dirname(v),
@@ -109,10 +110,9 @@ class BuildEngine:
                 m.params = None
                 self.macros[k] = m
 
-        assert os.path.isfile(source_file), f"not a file '{source_file}'"
         assert os.path.isdir(output_dir), f"not a dir '{output_dir}'"
 
-        self.path_dir_source = os.path.dirname(source_file)
+        self.path_dir_source = os.path.dirname(source_file) if os.path.isfile(source_file) else os.getcwd()
         self.path_dir_output = output_dir
 
         out_file = os.path.join(self.path_dir_output, "index.md")
@@ -222,9 +222,13 @@ class BuildEngine:
     def process_file(self, filepath):
         self.log_info(f"processing '{filepath}'")
 
-        assert os.path.isfile(filepath), f"file '{filepath}' does not exist"
+        if filepath == "-":
+            stream = sys.stdin
+        else:
+            assert os.path.isfile(filepath), f"file '{filepath}' does not exist"
+            stream = open(filepath, mode='r', encoding="utf8")
 
-        with open(filepath, mode='r', encoding="utf8") as file:
+        with stream as file:
             last_file = self.current_file
             last_line = self.current_file_line_number
 
@@ -259,7 +263,7 @@ class BuildEngine:
         assert line is not None
         self.log_line("writing: " + repr(line))
         self.output.write(line)
-    
+
     # adds raw
     def feed_raw(self, line: str):
         assert line is not None
@@ -275,6 +279,8 @@ class BuildEngine:
             variable_name = match.group(2) or match.group(3)
             modifier = match.group(4)
 
+            self.log_debug(f"handle variable '{variable_name}'{f" (format: {modifier})" if modifier else ""}")
+
             if variable_name not in vars:
                 self.log_debug(f"variable '{variable_name}' is not defined")
                 return match.group()
@@ -285,7 +291,7 @@ class BuildEngine:
                 value = value()
 
             if modifier:
-                assert modifier in self.format_modifiers, f"unknown format modifier '{modifier}'"
+                self.assert_that(modifier in self.format_modifiers, f"unknown format modifier '{modifier}'")
                 value = self.format_modifiers[modifier](value)
 
             return value
@@ -343,7 +349,7 @@ class BuildEngine:
 
         # TODO: kwargs
         # fixme: merge subs
-        pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\s*\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
+        pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
         result = re.sub(rf'(?<!{REGEX_ESCAPE_CHAR})' + pattern, lambda m: place_macro(m.group(1), m.group(2)), line)
         # cleanup
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
@@ -353,10 +359,21 @@ class BuildEngine:
 
         return result
 
-    # logging methods
+    # assets
 
-    def assert_that(self, condition):
-        raise NotImplemented
+    def assert_file(self, file):
+        if not os.path.isfile(file):
+            raise BuildFileNotFoundError(f"file '{file}' does not exist")
+
+    def assert_directory(self, directory):
+        if not os.path.isdir(directory):
+            raise BuildFileNotFoundError(f"directory '{file}' does not exist")
+
+    def assert_that(self, condition, msg=""):
+        if not condition:
+            raise BuildError(msg)
+
+    # logging methods
 
     def format_file_position(self):
         return f"{self.current_file}:{self.current_file_line_number}"

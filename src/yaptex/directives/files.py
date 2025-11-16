@@ -4,47 +4,63 @@ from ..utils import *
 from ..errors import *
 from . import Directive
 
+def _abs_path_warn(file: str, ctx: 'BuildEngine'):
+    if os.path.isabs(file):
+        ctx.pedantic_log_file("absolute path")
+        ctx.assert_that(False)
+    else:
+        assert ctx.current_file, "relative include without parent"
+
 class IncludeDirective(Directive):
     trigger_on = ["include"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^include\s+({REGEX_QUOTED})$', line)
+        m = re.match(rf'^include\s+{REGEX_GROUP_QUOTED}$', line)
         if not m: raise MalformedError()
 
-        filepath = str_unescape(m.group(1).strip(QUOTE_CHAR))
+        filepath = str_unescape(m.group(1))
 
-        if os.path.isabs(filepath):
-            engine.pedantic_log_file("absolute path")
-            assert False
-        else:
-            assert engine.current_file, "relative include without parent"
+        _abs_path_warn(filepath, engine)
 
         filepath = os.path.normpath(os.path.join(os.path.dirname(engine.current_file), filepath))
 
-        assert os.path.isfile(filepath), f"file '{filepath}' does not exist"
+        engine.assert_file(filepath)
         assert filepath not in engine.filestack, "cyclic include"
 
         engine.process_file(filepath)
+
+class StyleDirective(Directive):
+    trigger_on = ["style"]
+
+    def handle(self, line, engine):
+        m = re.match(rf'^style\s+{REGEX_GROUP_QUOTED}$', line)
+        if not m: raise MalformedError()
+
+        filepath = str_unescape(m.group(1))
+
+        _abs_path_warn(filepath, engine)
+
+        filepath = os.path.normpath(os.path.join(os.path.dirname(engine.current_file), filepath))
+
+        engine.assert_file(filepath)
+
+        raise NotImplementedError
 
 class EmbedDirective():
     trigger_on = ["embed"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^embed\s+({REGEX_QUOTED})$', line)
+        m = re.match(rf'^embed\s+{REGEX_GROUP_QUOTED}$', line)
         if not m: raise MalformedError()
 
-        filepath = str_unescape(m.group(1).strip(QUOTE_CHAR))
+        filepath = str_unescape(m.group(1))
 
-        if os.path.isabs(filepath):
-            engine.pedantic_log_file("absolute path")
-            assert False
-        else:
-            assert engine.current_file, "relative include without parent"
-        
+        _abs_path_warn(filepath, engine)
+
         filepath = os.path.normpath(os.path.join(os.path.dirname(engine.current_file), filepath))
 
-        assert os.path.isfile(filepath), f"file '{filepath}' does not exist"
-        
+        engine.assert_file(filepath)
+
         with open(filepath, "r") as file:
             engine.feed_raw(file.read())
 
@@ -53,14 +69,17 @@ class CopyDirective(Directive):
     trigger_on = ["copy"]
 
     def handle(self, line, engine):
-        m = re.match(rf'^copy\s+({REGEX_QUOTED})\s+({REGEX_QUOTED})$', line)
+        m = re.match(rf'^copy\s+{REGEX_GROUP_QUOTED}\s+{REGEX_GROUP_QUOTED}$', line)
         if not m: raise MalformedError()
 
-        what_file = str_unescape(m.group(1).strip(QUOTE_CHAR))
-        to_dir = str_unescape(m.group(2).strip(QUOTE_CHAR))
+        what_file = str_unescape(m.group(1))
+        to_dir = str_unescape(m.group(2))
+
+        _abs_path_warn(what_file, engine)
+        _abs_path_warn(to_dir, engine)
 
         src_file = os.path.join(os.path.dirname(engine.current_file), what_file)
-        assert os.path.isfile(src_file), f"file '{src_file}' does not exist"
+        engine.assert_file(src_file)
 
         dest_dir = os.path.join(engine.path_dir_output, to_dir)
         if not os.path.isdir(dest_dir):

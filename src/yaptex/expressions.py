@@ -1,6 +1,3 @@
-import re
-from abc import ABC
-from dataclasses import dataclass
 from typing import Callable, Any
 from collections import namedtuple
 
@@ -49,7 +46,7 @@ def parse(tokens):
         node = parse_primary()
         while tokens:
             tok = tokens[0]
-            
+
             if tok not in OPERATORS or OPERATORS[tok].func is None:
                 break
             operator = OPERATORS[tok]
@@ -89,12 +86,12 @@ def evaluate(ast, context, valuator = None):
     if isinstance(ast, str):
         if valuator:
             return valuator(ast)
-        
+
         val = context.get(ast)
         if val is None:
             raise ValueError(f"undefined variable: {ast}")
         return val
-    
+
     if isinstance(ast, tuple):
         if len(ast) == 2:  # unary
             op, operand = ast
@@ -102,7 +99,7 @@ def evaluate(ast, context, valuator = None):
         elif len(ast) == 3:  # binary
             op, left, right = ast
             return OPERATORS[op].func(evaluate(left, context, valuator), evaluate(right, context, valuator))
-    
+
     raise ValueError(f"invalid ast node: {ast}")
 
 def evaluate_expression(expr, context: dict = None, valuator: Callable[[str], Any] = None):

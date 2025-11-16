@@ -20,7 +20,8 @@ class DefineDirective(Directive):
         body_line = m.group(3)
         continue_next_line = m.group(4) is not None
 
-        assert macro_name not in engine.macros, "redefinition"
+        if macro_name in engine.macros:
+            engine.assert_that(False, "redefinition")
 
         mac = Macro()
         mac.params = None
@@ -49,7 +50,7 @@ class DefineDirective(Directive):
                 if not continue_next_line:
                     break
             else:
-                assert False, "unended macro"
+                engine.assert_that(False, "unended macro")
 
         if continue_next_line:
             eat_macro()
@@ -67,6 +68,7 @@ class UndefineDirective(Directive):
 
         macro_name = m.group(1)
 
-        assert macro_name in engine.macros, f"'{macro_name}' is not defined"
+        if macro_name not in engine.macros:
+            engine.assert_that(False, f"'{macro_name}' is not defined")
 
         del engine.macros[macro_name]

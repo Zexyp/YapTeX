@@ -1,5 +1,5 @@
 import argparse
-import os, sys
+import sys
 from .__main__ import motd
 
 def build_parser():
@@ -7,7 +7,7 @@ def build_parser():
 
     from importlib.metadata import version
     parser.add_argument('--version', action='version', version=f"YapTeX {version(__package__)}")
-    parser.add_argument("input")
+    parser.add_argument("input", help="use - for stdin as input")
     parser.add_argument("--output", default="./out", help="output directory")
     parser.add_argument("--target", choices=["raw", "md", "html", "pdf"], default="raw", help="targeted output format")
     parser.add_argument("-D", nargs='*', action="append", help="additional defines")
@@ -22,10 +22,12 @@ def build_parser():
 
     parser.print_help = help_hook
 
+    subparsers = parser.add_subparsers()
+    parser_font = subparsers.add_parser("font")
+    parser_font.add_subparsers().add_parser("pull")
+
     return parser
 
 def run():
     parser = build_parser()
-    subparsers = parser.add_subparsers()
-    parser_font = subparsers.add_parser("font")
-    parser_font.add_subparsers().add_parser("pull")
+    raise NotImplementedError

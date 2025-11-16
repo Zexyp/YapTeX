@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 
 ESCAPE_CHAR: str = '\\'
 DIRECTIVE_CHAR: str = '#'
@@ -18,7 +19,7 @@ REGEX_MACRO_LINE_CONTINUE: str = re.escape(MACRO_LINE_CONTINUE)
 REGEX_MACRO_CHAR: str = re.escape(MACRO_CHAR)
 REGEX_DIRECTIVE_CHAR: str = re.escape(DIRECTIVE_CHAR)
 REGEX_VARIABLE_CHAR: str = re.escape(VARIABLE_CHAR)
-REGEX_QUOTED: str = re.escape(QUOTE_CHAR) + r'((?:' + re.escape(ESCAPE_CHAR) + r'.|[^' + re.escape(QUOTE_CHAR) + re.escape(ESCAPE_CHAR) + r'])*)' + re.escape(QUOTE_CHAR)
+REGEX_GROUP_QUOTED: str = re.escape(QUOTE_CHAR) + r'((?:' + re.escape(ESCAPE_CHAR) + r'.|[^' + re.escape(QUOTE_CHAR) + re.escape(ESCAPE_CHAR) + r'])*)' + re.escape(QUOTE_CHAR)
 REGEX_MACRO_ARG_SEPARATOR: str = re.escape(MACRO_ARG_SEPARATOR)
 REGEX_ESCAPE_CHAR = re.escape(ESCAPE_CHAR)
 
@@ -33,9 +34,20 @@ def remove_one_of_prefixes(value, prefixes):
     for prefix in sorted(prefixes, reverse=True):
         if value.startswith(prefix):
             return value.removeprefix(prefix)
+    return value
 
 # remove one of the prefixes
 def remove_one_of_suffixes(value, suffixes):
     for suffix in sorted(suffixes):
         if value.suffix(suffix):
             return value.removesuffix(suffix)
+    return value
+
+# github slugifier
+def slugify(string: str) -> str:
+    slug = string.strip().lower()
+    slug = re.sub(r"\s+", "-", slug) # replace whitespace with -
+    slug = re.sub(r"[\]\[\!\/\'\"\#\$\%\&\(\)\*\+\,\.\/\:\;\<\=\>\?\@\\\^\{\|\}\~\`。，、；：？！…—·ˉ¨‘’“”々～‖∶＂＇｀｜〃〔〕〈〉《》「」『』．〖〗【】（）［］｛｝]", "", slug) # remove known punctuators
+    slug = re.sub(r"^-+", "", slug) # remove leading -
+    slug = re.sub(r"-+$", "", slug) # remove trailing -
+    return urllib.parse.quote(slug, safe="")

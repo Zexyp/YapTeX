@@ -63,15 +63,15 @@ class HtmlRenderer(Renderer):
                 except pygments.util.ClassNotFound:
                     log_warning(f"lexer for '{lang}' not found")
                     return
-            
+
             formatter = HtmlFormatter(style='bw');
             if not styleshim:
                 styleshim = formatter.get_style_defs(".highlight")
-            
+
             return pygments.highlight(content, lexer, formatter)
 
         md = MarkdownIt("commonmark", {"linkify": True})
-        mdit_py_plugins.dollarmath.dollarmath_plugin(md, )
+        #mdit_py_plugins.dollarmath.dollarmath_plugin(md, )
         md.enable(["linkify", "table"])
         md.options.highlight = highlight
         with open(file, mode='r', encoding="utf8") as source:
@@ -131,7 +131,7 @@ class HtmlRenderer(Renderer):
 </body>
 </html>
 """
-        
+
         # copy additional resources
         # this should be recursive one day
         import lxml.html
@@ -163,7 +163,7 @@ class HtmlRenderer(Renderer):
 
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             shutil.copy(ref_rel_path, dest)
-        
+
         with open(html_file, mode='w', encoding=HTML_ENCODING) as html:
             html.write(content)
         return html_file
@@ -192,10 +192,10 @@ class PdfRenderer(Renderer):
                     return
                 if os.path.isabs(uri):
                     return
-                
+
                 log_debug(f"resolving '{uri}'")
                 return os.path.join(workdir, uri)
-            
+
             pisa_status = pisa.CreatePDF(html_file.read(), dest=pdf, link_callback=link_callback)
 
         if pisa_status.err:

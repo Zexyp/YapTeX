@@ -16,14 +16,6 @@ The Markdow Preprocessor
 # TODO: simpler header indents
 # TODO: header format
 
-import os
-from abc import ABC, abstractmethod
-from io import TextIOWrapper, StringIO
-from typing import Generator
-import sys
-from datetime import datetime
-import argparse
-
 from .engine import BuildEngine
 from .renderers import *
 from .log import *
@@ -37,7 +29,6 @@ def main():
     log_print("░▀▄▀▒▄▀▄▒█▀▄░▀█▀▒██▀░▀▄▀ ™")
     log_print("░▒█▒░█▀█░█▀▒░▒█▒░█▄▄░█▒█")
 
-    assert os.path.isfile(args.input)
     os.makedirs(args.output, exist_ok=True)
     #assert args.target in ["md", "html", "pdf"]
 
@@ -58,7 +49,7 @@ def main():
             raise
     except:
         log_error("build failed")
-        
+
         if not args.verbose:
             exit(1)
         raise
@@ -70,7 +61,7 @@ def main():
     add_renderer_type(HtmlRenderer)
     add_renderer_type(PdfRenderer)
 
-    if (args.target != "raw"):
+    if args.target != "raw":
         def render_dependencies(renderer: Renderer, file: str):
             if renderer.depends_on:
                 file = render_dependencies(renderer.depends_on(), file)
@@ -78,7 +69,7 @@ def main():
             render_output = os.path.join(args.output, renderer.identifier)
             os.makedirs(render_output, exist_ok=True)
             return renderer.render(file, render_output)
-        
+
         renderer = renderer_types[args.target]()
 
         log_info("rendering...")
@@ -92,6 +83,6 @@ def main():
             raise
 
     log_info("done")
-    
+
 if __name__ == "__main__":
     main()
