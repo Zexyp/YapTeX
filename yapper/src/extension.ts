@@ -26,6 +26,14 @@ function getTempDir() {
     return lastTempDir = fs.mkdtempSync(tempDirPrefix);
 }
 
+// mark-github, beaker, compose
+const targetOptions = [
+    {value: null, label: "$(file) None"},
+    {value: "md", label: "$(markdown) Markdown"},
+    {value: "html", label: "$(file-code) HTML"},
+    {value: "pdf", label: "$(sparkle) PDF"}
+];
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -47,17 +55,10 @@ export function activate(context: vscode.ExtensionContext) {
         const editor = vscode.window.activeTextEditor;
         
         if (!editor) {
-            vscode.window.showErrorMessage("No active editor.");
+            vscode.window.showErrorMessage("No active editor");
             return;
         }
 
-        // mark-github, beaker, compose
-        const targetOptions = [
-            {value: null, label: "$(file) None"},
-            {value: "md", label: "$(markdown) Markdown"},
-            {value: "html", label: "$(file-code) HTML"},
-            {value: "pdf", label: "$(sparkle) PDF"}
-        ];
         let target = await vscode.window.showQuickPick(
             targetOptions,
             {
@@ -117,7 +118,7 @@ export function activate(context: vscode.ExtensionContext) {
             outputChannel.append(data.toString());
         });
 
-        child.on("close", (code) => {
+        child.on("close", async (code) => {
             if (code == 0)
                 vscode.window.showInformationMessage("Done");
             else
@@ -125,16 +126,31 @@ export function activate(context: vscode.ExtensionContext) {
 
             switch (target.value) {
                 case "md":
-                    vscode.commands.executeCommand('markdown.showPreviewToSide', vscode.Uri.file(path.join(workdir, "md", "index.md")));
+                    await vscode.commands.executeCommand(
+                        "markdown.showPreviewToSide",
+                        vscode.Uri.file(path.join(workdir, "md", "index.md"))
+                    );
                     break;
                 case "html":
-                    vscode.commands.executeCommand(
+                    await vscode.commands.executeCommand(
                         "livePreview.start.internalPreview.atFile",
                         vscode.Uri.file(path.join(workdir, "html", "index.html")),
                         { viewColumn: vscode.ViewColumn.Beside }
                     );
                     break;
+                case null:
+                    await vscode.window.showTextDocument(
+                        vscode.Uri.file(path.join(workdir, "raw", "index.md")),
+                        {
+                            viewColumn: vscode.ViewColumn.Beside,
+                            preserveFocus: true,
+                            preview: true
+                        }
+                    );
+                    break;
             }
+            
+
         });
     });
     

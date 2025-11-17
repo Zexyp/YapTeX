@@ -21,7 +21,7 @@
       },
       {
         "command": "yapper.build",
-        "title": "Build",
+        "title": "YapTeX Build",
         "category": "Yapper"
       }
     ],
