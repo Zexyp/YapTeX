@@ -3,6 +3,10 @@
   "injectionSelector": "L:text.html.markdown",
   "patterns": [
     {
+      "match": "^-#+\\s+.*$",
+      "name": "markup.heading"
+    },
+    {
       "match": "^#(?:endregion|enddef|pagebreak|else|endif)",
       "name": "keyword.control"
     },

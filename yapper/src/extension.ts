@@ -5,6 +5,7 @@ import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
 import { spawn } from "child_process";
+import { DynheaderFoldingRangeProvider, RegionFoldingRangeProvider } from './foldingRangeProviders';
 
 function getRootWorkspaceFolder(): string | null {
     const folders = vscode.workspace.workspaceFolders;
@@ -153,9 +154,15 @@ export function activate(context: vscode.ExtensionContext) {
 
         });
     });
+
+    const providerDynheader = vscode.languages.registerFoldingRangeProvider('markdown', new DynheaderFoldingRangeProvider());
+    const providerRange = vscode.languages.registerFoldingRangeProvider('markdown', new RegionFoldingRangeProvider());
     
-    context.subscriptions.push(commandHello, commandRun);
+    context.subscriptions.push(commandHello, commandRun, providerRange, providerDynheader);
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+    if (lastTempDir)
+        fs.rmdirSync(lastTempDir);
+}
