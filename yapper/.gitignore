@@ -1,3 +1,7 @@
+# unignore previous gitignore
+!*
+!*/
+
 out
 dist
 node_modules
