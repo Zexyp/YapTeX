@@ -23,7 +23,7 @@ let lastTempDir: string | null = null;
 function getTempDir() {
     if (lastTempDir) return lastTempDir;
 
-    const tempDirPrefix = path.join(os.tmpdir(), "yepper-build");
+    const tempDirPrefix = path.join(os.tmpdir(), "yepper-extension");
     return lastTempDir = fs.mkdtempSync(tempDirPrefix);
 }
 
@@ -52,7 +52,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('Hello World from Yapper!');
     });
 
-    const commandRun = vscode.commands.registerCommand("yapper.build", async () => {
+    const outputChannel = vscode.window.createOutputChannel("YapTeX");
+    const commandBuild = vscode.commands.registerCommand("yapper.build", async () => {
         const editor = vscode.window.activeTextEditor;
         
         if (!editor) {
@@ -67,8 +68,9 @@ export function activate(context: vscode.ExtensionContext) {
                 canPickMany: false
             }
         );
+
         if (!target)
-            target = targetOptions[0];
+            return;
 
         const config = vscode.workspace.getConfiguration("yapper");
         const cfgEnvironmentPath = config.get<string>("environmentPath") || "";
@@ -102,7 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
             stdio: ["pipe", "pipe", "pipe"]
         });
 
-        const outputChannel = vscode.window.createOutputChannel("YapTeX");
+        outputChannel.clear();
         outputChannel.show(true);
 
         if (shouldUseStdin) {
@@ -158,7 +160,7 @@ export function activate(context: vscode.ExtensionContext) {
     const providerDynheader = vscode.languages.registerFoldingRangeProvider('markdown', new DynheaderFoldingRangeProvider());
     const providerRange = vscode.languages.registerFoldingRangeProvider('markdown', new RegionFoldingRangeProvider());
     
-    context.subscriptions.push(commandHello, commandRun, providerRange, providerDynheader);
+    context.subscriptions.push(commandHello, commandBuild, providerRange, providerDynheader);
 }
 
 // This method is called when your extension is deactivated
