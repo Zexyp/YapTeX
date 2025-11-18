@@ -142,10 +142,10 @@ class BuildEngine:
         if re.match(r'^#+ ', line):
             self.pedantic_log_file(f"detected fixed header")
 
-        # dynamic headering
+        # dynamic headering, dynheader
         if m := re.match(r'^-(#+) ', line):
             self.log_debug("dynheader")
-            line = (len(self.sectionstack) + 1) * "#" + line.removeprefix(f"-{m.group(1)}")
+            line = len(self.sectionstack) * "#" + line.removeprefix(f"-")
 
         line = self.handle_variables(line, self.variables)
 

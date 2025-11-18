@@ -1,5 +1,4 @@
 
-
 # YapTeX
 **YapTeX** is a **Markdown** and *plain text* preprocessor. It's **the** very cool and simply overcomplicated solution.
 
@@ -284,6 +283,23 @@ You can use some special predefined variables.
 - `__FILE__`: current file
 - `__LINE__`: current line
 
+
+
+## Installation
+*TODO*
+
+
+### Dependencies
+#### xhtml2pdf
+
+### Extension
+You can build the [**Yapper**](yapper/README.md) extension VSIX file for **Visual Studio Code** using the default commands.
+```sh
+npm install
+```
+```sh
+npx vsce package
+```
 
 
 

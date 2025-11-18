@@ -43,6 +43,8 @@ Similarly, variables and macros can be escaped.
 
 #endregion
 
+#include "installation.md"
+
 #endregion
 
 *This document was built using YapTeX*
