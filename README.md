@@ -1,6 +1,6 @@
 
 # YapTeX
-**YapTeX** is a **Markdown** and *plain text* preprocessor. It's **the** very cool and simply overcomplicated solution.
+**YapTeX** is a **Markdown** and *plain text* preprocessor. It's **the** very *cool* and simply overcomplicated solution.
 
 ## Features
 - Build targets
