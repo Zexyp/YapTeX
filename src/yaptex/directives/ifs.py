@@ -1,11 +1,15 @@
+"""to be or not to be"""
+
 from abc import abstractmethod
 
-from ..utils import *
+from ..utils import DIRECTIVE_CHAR, remove_one_of_prefixes
 from .. import expressions
 from . import Directive
 
 
 class BaseIfDirective(Directive):
+    """BaseIfDirective is it hard to understand??"""
+
     trigger_negative: str = None
     trigger_elif: str = None
     trigger_elif_negative: str = None
@@ -13,6 +17,8 @@ class BaseIfDirective(Directive):
     trigger_end: str = None
 
     def __init__(self):
+        super().__init__()
+
         # convert to full representation
         # don't modify self.trigger_negative (since it's the initial one)
         self.trigger_elif = f"{DIRECTIVE_CHAR}{self.trigger_elif}"
@@ -56,7 +62,7 @@ class BaseIfDirective(Directive):
                 engine.log_directive(if_line.strip('\n'))
 
                 assert len(if_line.strip().removeprefix(self.trigger_else)) == 0, "malformed else"  # ends with new line
-                
+
                 engine.assert_that(not found_else, "multiple else statements")
                 found_else = True
 
@@ -78,6 +84,7 @@ class BaseIfDirective(Directive):
 
 
 class IfDirective(BaseIfDirective):
+    """ifing"""
     trigger_on = ["if", "ifn"]
     trigger_negative = "ifn"
     trigger_elif = "elif"
@@ -90,6 +97,7 @@ class IfDirective(BaseIfDirective):
 
 
 class IfDefDirective(BaseIfDirective):
+    """ifdefing"""
     trigger_on = ["ifdef", "ifndef"]
     trigger_negative = "ifndef"
     trigger_elif = "elifdef"

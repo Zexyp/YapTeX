@@ -71,7 +71,7 @@ class HtmlRenderer(Renderer):
             return pygments.highlight(content, lexer, formatter)
 
         md = MarkdownIt("commonmark", {"linkify": True})
-        #mdit_py_plugins.dollarmath.dollarmath_plugin(md, )
+        
         md.enable(["linkify", "table"])
         md.options.highlight = highlight
         with open(file, mode='r', encoding="utf8") as source:

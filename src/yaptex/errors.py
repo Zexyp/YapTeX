@@ -1,13 +1,15 @@
+"""what is that? is the wind raising the exceptions? act fast! you gotta catch them all"""
+
 class YapTeXError(Exception):
-    pass
+    """uh oh"""
 
 YapError = YapTeXError
 
 class BuildError(YapTeXError):
-    pass
+    """user error"""
 
 class MalformedError(BuildError):
-    pass
+    """regex spaghetti not suffiecently satisfied"""
 
 class BuildFileNotFoundError(BuildError, FileNotFoundError):
-    pass
+    """did the app or you got lost?"""

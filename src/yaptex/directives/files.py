@@ -1,7 +1,10 @@
-import os
+"""file operations"""
 
-from ..utils import *
-from ..errors import *
+import os
+import re
+import shutil
+
+from ..utils import REGEX_GROUP_QUOTED, str_unescape
 from . import Directive
 
 def _abs_path_warn(file: str, ctx: 'BuildEngine'):
@@ -12,11 +15,13 @@ def _abs_path_warn(file: str, ctx: 'BuildEngine'):
         assert ctx.current_file, "relative include without parent"
 
 class IncludeDirective(Directive):
+    """the append thingy"""
+
     trigger_on = ["include"]
 
     def handle(self, line, engine):
         m = re.match(rf'^include\s+{REGEX_GROUP_QUOTED}$', line)
-        if not m: raise MalformedError()
+        engine.assert_match(m)
 
         filepath = str_unescape(m.group(1))
 
@@ -30,11 +35,13 @@ class IncludeDirective(Directive):
         engine.process_file(filepath)
 
 class StyleDirective(Directive):
+    """css funny"""
+
     trigger_on = ["style"]
 
     def handle(self, line, engine):
         m = re.match(rf'^style\s+{REGEX_GROUP_QUOTED}$', line)
-        if not m: raise MalformedError()
+        engine.assert_match(m)
 
         filepath = str_unescape(m.group(1))
 
@@ -46,12 +53,14 @@ class StyleDirective(Directive):
 
         raise NotImplementedError
 
-class EmbedDirective():
+class EmbedDirective(Directive):
+    """append but don't process"""
+
     trigger_on = ["embed"]
 
     def handle(self, line, engine):
         m = re.match(rf'^embed\s+{REGEX_GROUP_QUOTED}$', line)
-        if not m: raise MalformedError()
+        engine.assert_match(m)
 
         filepath = str_unescape(m.group(1))
 
@@ -61,16 +70,21 @@ class EmbedDirective():
 
         engine.assert_file(filepath)
 
-        with open(filepath, "r") as file:
+        # TODO: encoding
+        # pylint is a fucking yapper
+        with open(filepath, "r", encoding=None) as file:
             engine.feed_raw(file.read())
 
 
 class CopyDirective(Directive):
+    """the filesystem bloating mechanism"""
+
     trigger_on = ["copy"]
 
+    # FIDME: it's unsafe
     def handle(self, line, engine):
         m = re.match(rf'^copy\s+{REGEX_GROUP_QUOTED}\s+{REGEX_GROUP_QUOTED}$', line)
-        if not m: raise MalformedError()
+        engine.assert_match(m)
 
         what_file = str_unescape(m.group(1))
         to_dir = str_unescape(m.group(2))
@@ -84,8 +98,6 @@ class CopyDirective(Directive):
         dest_dir = os.path.join(engine.path_dir_output, to_dir)
         if not os.path.isdir(dest_dir):
             os.makedirs(dest_dir)
-
-        import shutil
 
         engine.log_info(f"copying file '{src_file}' to '{dest_dir}'")
         shutil.copy2(src_file, dest_dir)

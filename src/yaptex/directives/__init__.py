@@ -1,6 +1,10 @@
+"""base directives"""
+
 from abc import ABC, abstractmethod
 
 class Directive(ABC):
+    """mechanism to declare logic of directives"""
+
     trigger_on: list[str] = None
 
     def __init__(self):
@@ -11,11 +15,16 @@ class Directive(ABC):
 
     @abstractmethod
     def handle(self, line: str, engine: 'BuildEngine'):
-        pass
+        """logic goes here"""
 
 class ArgDirective(Directive, ABC):
+    """NotImplemented"""
+
     # arg regex (\s+(.+))?
-    pass
+    def __init__(self):
+        super().__init__()
+
+        raise NotImplementedError
 
 from .ifs import *
 from .messages import *
@@ -25,6 +34,8 @@ from .files import *
 from .regions import *
 
 class PragmaDirective(Directive):
+    """today is not the day"""
+
     trigger_on = "pragma"
 
     def handle(self, line, engine):
@@ -33,6 +44,8 @@ class PragmaDirective(Directive):
 
 
 class PageBreakDirective(Directive):
+    """inserts page breaking feature"""
+
     trigger_on = ["pagebreak"]
 
     def handle(self, line, engine):
@@ -41,12 +54,14 @@ class PageBreakDirective(Directive):
 
 
 class LineDirective(Directive):
+    """the rename spaghetification device"""
+
     trigger_on = ["line"]
 
     def handle(self, line, engine):
         pattern = rf'^line\s+({REGEX_NUMBER_INT})(?:\s+{REGEX_GROUP_QUOTED})?$'
         m = re.match(pattern, line)
-        if not m: raise MalformedError()
+        engine.assert_match(m)
 
         line_number = m.group(1)
         filename = m.group(2)

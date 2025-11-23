@@ -1,25 +1,29 @@
+"""home of main machinery"""
+
+# TODO: import logging
 from io import TextIOWrapper
 from typing import Callable, Generator
 from collections import OrderedDict
 from datetime import datetime
 import html
-# TODO: import logging
+import sys
 
 import yaml
 
-from . import directives, utils
-from .utils import *
-from .log import *
+from . import utils
+from .utils import str_escape, REGEX_ESCAPE_CHAR, PAGE_HEADER_SEPARATOR, REGEX_VARIABLE_CHAR, VARIABLE_FORMAT_SEPARATOR, VARIABLE_CHAR, REGEX_MACRO_CHAR, MACRO_CHAR
+from .log import log_debug, log_warning, log_error, log_directive, log_info
 from .structures import Macro
+from .errors import YapTeXError, BuildError, BuildFileNotFoundError, MalformedError
+from .directives import *
 
 PER_LINE_VERBOSITY = False
 
-from .directives import *
-
 class BuildEngine:
+    """main machinery"""
     def __init__(self) -> None:
         self.path_dir_output: str = "./out"
-        self.path_dir_source: str = None;
+        self.path_dir_source: str = None
         self.path_dir_resource: str = os.path.join(os.path.dirname(__file__), "res")
 
         self.directives: list[Directive] = [
@@ -86,22 +90,26 @@ class BuildEngine:
         self.pedantic = False
 
         self.format_modifiers: dict[str, Callable[[str], str]] = {
-            "html": lambda v: html.escape(v),
-            "slug": lambda v: utils.slugify(v),
-            "esc": lambda v: str_escape(v),
-            "bn": lambda v: os.path.basename(v),
-            "dn": lambda v: os.path.dirname(v),
-            "l": lambda v: v.lower(),
-            "u": lambda v: v.upper(),
-            "t": lambda v: v.title(),
+            "html": html.escape,
+            "slug": utils.slugify,
+            "esc": str_escape,
+            "bn": os.path.basename,
+            "dn": os.path.dirname,
+            "l": str.lower,
+            "u": str.upper,
+            "t": str.title,
         }
 
     def configure(self, pedantic: bool = None):
-        if pedantic is not None: self.pedantic = pedantic
+        """sigh"""
+        if pedantic is not None:
+            self.pedantic = pedantic
 
     # build a file
     def build(self, source_file: str, output_dir: str,
               defines: list[str] = None):
+        """build file and do some outputing"""
+
         if defines:
             self.log_debug("using supplied defines: " + ", ".join([f"'{v}'" for v in defines]))
             for k in defines:
@@ -122,8 +130,7 @@ class BuildEngine:
                 self.output = file
                 self.process_file(source_file)
                 self.output = None
-            # TODO: better assertion
-            except YapError as ex:
+            except YapTeXError as ex:
                 self.log_file_error(f"{ex}")
                 raise
 
@@ -134,18 +141,20 @@ class BuildEngine:
 
     # handle all stuff on line
     def process_line(self, line):
+        """just processes a line"""
+
         assert line is not None
 
         self.log_line("processing line: " + repr(line))
 
         # pedantic
         if re.match(r'^#+ ', line):
-            self.pedantic_log_file(f"detected fixed header")
+            self.pedantic_log_file("detected fixed header")
 
         # dynamic headering, dynheader
-        if m := re.match(r'^-(#+) ', line):
+        if re.match(r'^-(#+) ', line):
             self.log_debug("dynheader")
-            line = len(self.sectionstack) * "#" + line.removeprefix(f"-")
+            line = len(self.sectionstack) * "#" + line.removeprefix("-")
 
         line = self.handle_variables(line, self.variables)
 
@@ -165,6 +174,7 @@ class BuildEngine:
 
     # execute a directive
     def handle_directive(self, line):
+        """is magical"""
         m = re.match("^#([a-z]+)", line)
         if m:
             directive_key = m.group(1)
@@ -177,13 +187,15 @@ class BuildEngine:
             return ""
 
         # possible header
-        elif not line.startswith(f"{DIRECTIVE_CHAR} "):
+        if not line.startswith(f"{DIRECTIVE_CHAR} "):
             self.pedantic_log_file("unreadable directive")
 
         return line
 
     # processes readable stream
     def process_stream(self, readable: TextIOWrapper):
+        """works on stream"""
+
         last_input = self.input
         self.input = readable
 
@@ -220,6 +232,8 @@ class BuildEngine:
 
     # opens a file and processes it
     def process_file(self, filepath):
+        """processes stream of give file path"""
+
         self.log_info(f"processing '{filepath}'")
 
         if filepath == "-":
@@ -244,6 +258,7 @@ class BuildEngine:
 
     # reads a line from current file
     def consume(self) -> Generator[str, None, None]:
+        """\"nom nom\", *consumes line cutely*"""
         initial_sections_count = len(self.sectionstack)
         self.current_file_line_number = 0
         while line := self.input.readline():
@@ -258,6 +273,7 @@ class BuildEngine:
 
     # adds line to be processed
     def feed(self, line: str):
+        """*gulps cutely*, places a line to ouptut"""
         assert line is not None
         line = self.process_line(line)
         assert line is not None
@@ -266,13 +282,15 @@ class BuildEngine:
 
     # adds raw
     def feed_raw(self, line: str):
+        """shoving mechanism"""
         assert line is not None
         self.log_line("writing raw: " + repr(line))
         self.output.write(line)
 
     # replaces variables with their values
-    def handle_variables(self, body: str, vars: dict[str, str]) -> str:
-        if not vars:
+    def handle_variables(self, body: str, vrbls: dict[str, str]) -> str:
+        """put vars"""
+        if not vrbls:
             return body
 
         def place_variable(match):
@@ -281,13 +299,13 @@ class BuildEngine:
 
             self.log_debug(f"handle variable '{variable_name}'{f" (format: {modifier})" if modifier else ""}")
 
-            if variable_name not in vars:
+            if variable_name not in vrbls:
                 self.log_debug(f"variable '{variable_name}' is not defined")
                 return match.group()
 
-            value = vars[variable_name]
+            value = vrbls[variable_name]
             if callable(value):
-                self.log_debug(f"called variable '{variable_name}'")
+                self.log_debug("called variable '{variable_name}'")
                 value = value()
 
             if modifier:
@@ -304,12 +322,13 @@ class BuildEngine:
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
 
         if VARIABLE_CHAR in result:
-            self.log_file_warning(f"scareware: unresolved variable")
+            self.log_file_warning("scareware: unresolved variable")
 
         return result
 
     # handles macros on line
     def handle_macros(self, line) -> str:
+        """put macros"""
         self.log_line("line for macro handling: " + repr(line))
         # fully handles a macro
         def place_macro(macro_name: str, macro_args: str):
@@ -361,53 +380,72 @@ class BuildEngine:
 
     # assets
 
+    def assert_match(self, m):
+        """custom assert thingy"""
+        if not m:
+            raise MalformedError()
+
     def assert_file(self, file):
+        """custom assert thingy"""
         if not os.path.isfile(file):
             raise BuildFileNotFoundError(f"file '{file}' does not exist")
 
     def assert_directory(self, directory):
+        """custom assert thingy"""
         if not os.path.isdir(directory):
-            raise BuildFileNotFoundError(f"directory '{file}' does not exist")
+            raise BuildFileNotFoundError(f"directory '{directory}' does not exist")
 
     def assert_that(self, condition, msg=""):
+        """custom assert thingy"""
         if not condition:
             raise BuildError(msg)
 
     # logging methods
 
-    def format_file_position(self):
+    def _format_file_position(self):
         return f"{self.current_file}:{self.current_file_line_number}"
 
-    def format_file_msg(self, msg):
-        return f"- {self.format_file_position()}: {msg}"
+    def _format_file_msg(self, msg):
+        return f"- {self._format_file_position()}: {msg}"
 
     def log_debug(self, msg: str):
+        """engine log"""
         log_debug(msg)
 
     def log_line(self, msg: str):
-        if (PER_LINE_VERBOSITY): self.log_debug(f"l: {msg}")
+        """high debug thingy"""
+        if PER_LINE_VERBOSITY:
+            self.log_debug(f"l: {msg}")
 
     def log_directive(self, msg: str):
+        """engine log"""
         log_directive(msg)
 
     def log_info(self, msg: str):
+        """engine log"""
         log_info(msg)
 
     def log_error(self, msg: str):
+        """engine log"""
         log_error(msg)
 
     def log_warning(self, msg: str):
+        """engine log"""
         log_warning(msg)
 
     def log_file_error(self, msg: str):
-        self.log_error(self.format_file_msg(msg))
+        """engine log"""
+        self.log_error(self._format_file_msg(msg))
 
     def log_file_warning(self, msg: str):
-        self.log_warning(self.format_file_msg(msg))
+        """engine log"""
+        self.log_warning(self._format_file_msg(msg))
 
     def pedantic_log(self, msg: str):
-        if self.pedantic: self.log_warning(msg)
+        """engine log"""
+        if self.pedantic:
+            self.log_warning(msg)
 
     def pedantic_log_file(self, msg: str):
-        self.pedantic_log(self.format_file_msg(msg))
-
+        """engine log"""
+        self.pedantic_log(self._format_file_msg(msg))

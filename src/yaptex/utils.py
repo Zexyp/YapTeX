@@ -1,6 +1,9 @@
+"""welcome to the land of useless docstrings"""
+
 import re
 import urllib.parse
 
+# FIXME: dynheader char
 ESCAPE_CHAR: str = '\\'
 DIRECTIVE_CHAR: str = '#'
 VARIABLE_CHAR: str = '%'
@@ -24,27 +27,29 @@ REGEX_MACRO_ARG_SEPARATOR: str = re.escape(MACRO_ARG_SEPARATOR)
 REGEX_ESCAPE_CHAR = re.escape(ESCAPE_CHAR)
 
 def str_escape(value: str) -> str:
+    """escape"""
     return value.replace("\"", f"{ESCAPE_CHAR}\"")
 
 def str_unescape(value: str) -> str:
+    """unecape"""
     return value.replace(f"{ESCAPE_CHAR}\"", "\"")
 
-# remove one of the prefixes
 def remove_one_of_prefixes(value, prefixes):
+    """remove one of the prefixes"""
     for prefix in sorted(prefixes, reverse=True):
         if value.startswith(prefix):
             return value.removeprefix(prefix)
     return value
 
-# remove one of the prefixes
 def remove_one_of_suffixes(value, suffixes):
+    """remove one of the prefixes"""
     for suffix in sorted(suffixes):
         if value.suffix(suffix):
             return value.removesuffix(suffix)
     return value
 
-# github slugifier
 def slugify(string: str) -> str:
+    """github slugifier"""
     slug = string.strip().lower()
     slug = re.sub(r"\s+", "-", slug) # replace whitespace with -
     slug = re.sub(r"[\]\[\!\/\'\"\#\$\%\&\(\)\*\+\,\.\/\:\;\<\=\>\?\@\\\^\{\|\}\~\`。，、；：？！…—·ˉ¨‘’“”々～‖∶＂＇｀｜〃〔〕〈〉《》「」『』．〖〗【】（）［］｛｝]", "", slug) # remove known punctuators

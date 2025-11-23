@@ -1,18 +1,21 @@
+"""define and undefine"""
+
 import re
 
 from . import Directive
-from ..errors import MalformedError
 from ..structures import Macro
-from ..utils import *
+from ..utils import REGEX_IDENTIFIER, REGEX_MACRO_ARG_SEPARATOR, REGEX_MACRO_LINE_CONTINUE, MACRO_ARG_SEPARATOR, ESCAPE_CHAR, MACRO_LINE_CONTINUE
 
 class DefineDirective(Directive):
+    """macros, yaaay"""
+
     trigger_on = ["define"]
 
-    # todo: add elipsis (variable args)
+    # TODO: add elipsis (variable args)
     def handle(self, line, engine):
         pattern = rf'^define\s+({REGEX_IDENTIFIER})(\(\s*{REGEX_IDENTIFIER}\s*(?:{REGEX_MACRO_ARG_SEPARATOR}\s*{REGEX_IDENTIFIER}\s*)*\))?(?:\s+(.*?)({REGEX_MACRO_LINE_CONTINUE})?)?$'
         m = re.match(pattern, line)
-        if not m: raise MalformedError()
+        engine.assert_match(m)
 
         macro_name = m.group(1)
         macro_params = m.group(2)
@@ -34,7 +37,7 @@ class DefineDirective(Directive):
         def eat_macro():
             for body_line in engine.consume():
                 # allow leading spaces
-                # TODO: handle better
+                # FIXME: handle better, edge cases are evil
                 if body_line.startswith(ESCAPE_CHAR):
                     body_line = body_line.removeprefix(ESCAPE_CHAR).rstrip()
                 else:
@@ -59,12 +62,12 @@ class DefineDirective(Directive):
 
 
 class UndefineDirective(Directive):
+    """when you had enough of that"""
     trigger_on = ["undef"]
 
     def handle(self, line, engine):
         m = re.match(rf'^undef\s+({REGEX_IDENTIFIER})$', line)
-
-        if not m: raise MalformedError()
+        engine.assert_match(m)
 
         macro_name = m.group(1)
 
