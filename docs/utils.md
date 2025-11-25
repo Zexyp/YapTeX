@@ -2,5 +2,5 @@
 #define DECLARE_END_DIRECTIVE #endregion\
 ---\
 
-#define TODO *TODO*\
-#warning "TODO"
+#define TODO(MSG) ***TODO:** %MSG*\
+#warning "TODO: %{MSG:esc}"

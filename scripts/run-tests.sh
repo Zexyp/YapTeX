@@ -4,4 +4,4 @@ set -e
 python -m unittest
 
 shopt -s globstar
-pylint yaptex
+pylint src/yaptex/**/*.py

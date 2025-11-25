@@ -6,7 +6,7 @@ from yaptex.engine import BuildEngine
 
 from . import RESOURCE_DIR
 
-class BuildTest(unittest.TestCase):
+class EngineTest(unittest.TestCase):
     def setUp(self):
         self.engine = BuildEngine()
         self.temp_dir = tempfile.TemporaryDirectory()
