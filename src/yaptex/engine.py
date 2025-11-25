@@ -7,11 +7,13 @@ from collections import OrderedDict
 from datetime import datetime
 import html
 import sys
+import os
+import re
 
 import yaml
 
 from . import utils
-from .utils import str_escape, REGEX_ESCAPE_CHAR, PAGE_HEADER_SEPARATOR, REGEX_VARIABLE_CHAR, VARIABLE_FORMAT_SEPARATOR, VARIABLE_CHAR, REGEX_MACRO_CHAR, MACRO_CHAR
+from .utils import str_escape, REGEX_ESCAPE_CHAR, PAGE_HEADER_SEPARATOR, REGEX_VARIABLE_CHAR, VARIABLE_FORMAT_SEPARATOR, VARIABLE_CHAR, REGEX_MACRO_CHAR, MACRO_CHAR, ESCAPE_CHAR, DIRECTIVE_CHAR, REGEX_IDENTIFIER, MACRO_ARG_SEPARATOR
 from .log import log_debug, log_warning, log_error, log_directive, log_info
 from .structures import Macro
 from .errors import YapTeXError, BuildError, BuildFileNotFoundError, MalformedError
@@ -118,7 +120,8 @@ class BuildEngine:
                 m.params = None
                 self.macros[k] = m
 
-        assert os.path.isdir(output_dir), f"not a dir '{output_dir}'"
+        if not os.path.isdir(output_dir):
+            raise BuildFileNotFoundError(f"not a dir '{output_dir}'")
 
         self.path_dir_source = os.path.dirname(source_file) if os.path.isfile(source_file) else os.getcwd()
         self.path_dir_output = output_dir
@@ -181,7 +184,7 @@ class BuildEngine:
             if directive_key not in self.directives_map:
                 self.pedantic_log_file(f"unknown directive '{directive_key}'")
                 return line
-            log_directive(line.removesuffix("\n"))
+            self.log_directive(line.removesuffix("\n"))
             directive = self.directives_map[directive_key]
             directive.handle(line.removeprefix(DIRECTIVE_CHAR), self)
             return ""
@@ -322,7 +325,7 @@ class BuildEngine:
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
 
         if VARIABLE_CHAR in result:
-            self.log_file_warning("scareware: unresolved variable")
+            self.log_file_warning("scareware: unresolved variable?")
 
         return result
 
@@ -374,7 +377,7 @@ class BuildEngine:
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
 
         if MACRO_CHAR in result:
-            self.log_file_warning(f"scareware: unresolved macro")
+            self.log_file_warning(f"scareware: unresolved macro?")
 
         return result
 
@@ -415,23 +418,23 @@ class BuildEngine:
     def log_line(self, msg: str):
         """high debug thingy"""
         if PER_LINE_VERBOSITY:
-            self.log_debug(f"l: {msg}")
+            self.log_debug(f"eng: l: {msg}")
 
     def log_directive(self, msg: str):
         """engine log"""
-        log_directive(msg)
+        log_directive(f"eng: {msg}")
 
     def log_info(self, msg: str):
         """engine log"""
-        log_info(msg)
+        log_info(f"eng: {msg}")
 
     def log_error(self, msg: str):
         """engine log"""
-        log_error(msg)
+        log_error(f"eng: {msg}")
 
     def log_warning(self, msg: str):
         """engine log"""
-        log_warning(msg)
+        log_warning(f"eng: {msg}")
 
     def log_file_error(self, msg: str):
         """engine log"""
@@ -444,7 +447,7 @@ class BuildEngine:
     def pedantic_log(self, msg: str):
         """engine log"""
         if self.pedantic:
-            self.log_warning(msg)
+            self.log_warning(f"ped: {msg}")
 
     def pedantic_log_file(self, msg: str):
         """engine log"""

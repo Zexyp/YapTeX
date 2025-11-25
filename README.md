@@ -13,11 +13,9 @@
 - Customization
 
 ## Usage
-
-
 Usual markdown headers are not considered as directives.
 When using directives the `#` symbol must be the first symbol of the line.
-If you want to start your line with a `#`, you will have to escape it by using a backslash (e.g. `\#`).
+If you want to start your line with directive-like entry, you will have to escape the special char by using a backslash (e.g. `\#`).
 Similarly, variables and macros can be escaped.
 
 ### Basic Directives
@@ -302,5 +300,19 @@ npx vsce package
 ```
 
 
+
+# Code Style
+Notes based on pylint yap:
+- If the *docstring* is not needed fill it with some yap (best is to use something thematic).
+- "Too few public methods" indicates that the file or mechanism might be too clean. There is no point in making it more stupid.
+
+---
+
+> [!WARNING]
+> Using YapTeX may result in:
+> - High blood pressure
+> - Existential crises
+> - Endless nightmares
+> - Complete failure of effort to document
 
 *This document was built using YapTeX*

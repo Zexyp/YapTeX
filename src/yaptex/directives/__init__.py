@@ -1,6 +1,9 @@
 """base directives"""
 
 from abc import ABC, abstractmethod
+import re
+
+from ..utils import REGEX_NUMBER_INT, REGEX_GROUP_QUOTED
 
 class Directive(ABC):
     """mechanism to declare logic of directives"""
@@ -26,12 +29,12 @@ class ArgDirective(Directive, ABC):
 
         raise NotImplementedError
 
-from .ifs import *
-from .messages import *
-from .defines import *
-from .variables import *
-from .files import *
-from .regions import *
+from .ifs import IfDirective,  IfDefDirective
+from .messages import WarningDirective, ErrorDirective
+from .defines import DefineDirective, UndefineDirective
+from .variables import SetDirective, IncrementDirective, DecrementDirective
+from .files import IncludeDirective, EmbedDirective, CopyDirective, StyleDirective
+from .regions import RegionDirective, EndRegionDirective
 
 class PragmaDirective(Directive):
     """today is not the day"""

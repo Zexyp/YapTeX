@@ -1,7 +1,10 @@
+"""parsing and evaluation of expressions"""
+
 from typing import Callable, Any
 from collections import namedtuple
+import re
 
-from .utils import *
+from .utils import REGEX_IDENTIFIER
 
 # fact: chatgpt is retarded
 
@@ -28,20 +31,22 @@ OPERATORS = {
     "||":  Operator(0, "left",  lambda a, b: bool(a) or bool(b)),
 }
 
-def build_token_regex():
+def _build_token_regex():
     sorted_ops = sorted(OPERATORS.keys(), key=lambda x: -len(x))
     all_tokens = sorted_ops + OTHER_TOKENS
     escaped_tokens = [re.escape(token) for token in all_tokens]
     pattern = r'\s*(' + '|'.join(escaped_tokens) + '|' + REGEX_IDENTIFIER + r')\s*'
     return re.compile(pattern)
 
-TOKEN_REGEX = build_token_regex()
+TOKEN_REGEX = _build_token_regex()
 
 def tokenize(expression):
+    """tokenization"""
     tokens = TOKEN_REGEX.findall(expression)
     return [token for token in tokens if token.strip()]
 
 def parse(tokens):
+    """parsing"""
     def parse_expression(min_prec=0):
         node = parse_primary()
         while tokens:
@@ -81,6 +86,7 @@ def parse(tokens):
     return parse_expression()
 
 def evaluate(ast, context, valuator = None):
+    """evaluation"""
     if isinstance(ast, (bool, int)):
         return ast
     if isinstance(ast, str):
@@ -103,6 +109,7 @@ def evaluate(ast, context, valuator = None):
     raise ValueError(f"invalid ast node: {ast}")
 
 def evaluate_expression(expr, context: dict = None, valuator: Callable[[str], Any] = None):
+    """evaluates an expression using the given valuator"""
     context = context or {}
     tokens = tokenize(expr)
     ast = parse(tokens)
