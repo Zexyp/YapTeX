@@ -11,7 +11,7 @@ class MdRenderer(Renderer):
     identifier = "md"
 
     # post processing options
-    def render(self, file: str, output_dir: str):
+    def render(self, file: str, output_dir: str, rargs: dict[str, str] = {}):
         # TODO: strip style
         # TODO: colorful headers
         dest = os.path.join(output_dir, "index.md")

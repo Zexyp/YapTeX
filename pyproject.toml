@@ -18,6 +18,7 @@ Issues = "https://github.com/Zexyp/YapTeX/issues"
 
 [project.scripts]
 yaptex = "yaptex.__main__:main"
+yaptex-font = "yaptex.cli:font"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

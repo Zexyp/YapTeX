@@ -12,7 +12,7 @@ class Renderer(ABC):
     identifier = None
 
     @abstractmethod
-    def render(self, file: str, output_dir: str):
+    def render(self, file: str, output_dir: str, rargs: dict[str, str]):
         """render stuff"""
 
 try:

@@ -11,6 +11,7 @@
 - Only pip dependencies
 - Macros
 - Customization
+- Font management
 
 ## Usage
 Usual markdown headers are not considered as directives.
@@ -19,6 +20,7 @@ If you want to start your line with directive-like entry, you will have to escap
 Similarly, variables and macros can be escaped.
 
 ### CLI
+#### Building a document
 You can ivoke the installed module simply by running a command in terminal.
 ```sh
 yaptex <input-file>
@@ -27,6 +29,17 @@ yaptex <input-file>
 For more info use help flag.
 ```sh
 yaptex -h
+```
+
+#### Fonts
+You can download more fonts from **Google Fonts** using the following command.
+```sh
+yaptex-font pull <font-family>
+```
+
+To see all installed fonts use:
+```sh
+yaptex-font list
 ```
 
 ### Basic Directives
@@ -52,6 +65,7 @@ Includes another file raw without processing it.
 
 
 ---
+
 #### `#region "<name>"`
 
 
@@ -224,6 +238,7 @@ Nothing is defined :(
 
 
 ---
+
 #### `#warning "<message>"`
 
 
@@ -345,6 +360,6 @@ Notes based on pylint yap:
 > - High blood pressure
 > - Existential crises
 > - Endless nightmares
-> - Complete failure of effort to document
+> - Complete failure of documentation
 
 *This document was built using YapTeX*

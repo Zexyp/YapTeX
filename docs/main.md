@@ -12,6 +12,7 @@
 - Only pip dependencies
 - Macros
 - Customization
+- Font management
 #endregion
 
 #region "Usage"
@@ -55,6 +56,6 @@ Similarly, variables and macros can be escaped.
 > - High blood pressure
 > - Existential crises
 > - Endless nightmares
-> - Complete failure of effort to document
+> - Complete failure of documentation
 
 *This document was built using YapTeX*

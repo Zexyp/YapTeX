@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
 
-yaptex docs/main.md --target md --output readme-build
+yaptex docs/main.md --target md --output readme-build --pedantic
 cp readme-build/md/index.md README.md

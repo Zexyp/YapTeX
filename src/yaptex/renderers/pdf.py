@@ -24,7 +24,7 @@ class PdfRenderer(Renderer):
     depends_on = HtmlRenderer
 
     # this needs preparation
-    def render(self, file: str, output_dir: str):
+    def render(self, file: str, output_dir: str, rargs: dict[str, str] = {}):
         pdf_file = os.path.join(output_dir, "index.pdf")
         with open(pdf_file, mode="wb") as pdf, open(file, mode="r", encoding=HTML_ENCODING) as html_file:
             workdir = os.path.dirname(file)

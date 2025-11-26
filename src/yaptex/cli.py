@@ -7,8 +7,10 @@ from importlib.metadata import version
 
 from . import renderer_types
 from .engine import BuildEngine
-from .log import log_info, log_print, log_error
+from .log import log_info, log_print, log_error, log_debug
 from .renderers import Renderer
+from . import fonts
+from . import PATH_DIR_RESOURCE
 
 MOTD = """
                                                              ™
@@ -37,6 +39,7 @@ def build_parser():
     parser.add_argument("-D", nargs='*', action="append", help="additional defines")
     parser.add_argument("--pedantic", action="store_true", help="annoying yap")
     parser.add_argument("--verbose", action="store_true", help="yap on error")
+    parser.add_argument("--rargs", default="", help="renderer args")
 
     prev_help = parser.print_help
 
@@ -46,14 +49,36 @@ def build_parser():
 
     parser.print_help = help_hook
 
-    #subparsers = parser.add_subparsers()
-    #parser_font = subparsers.add_parser("font")
-    #parser_font.add_subparsers().add_parser("pull")
+    return parser
+
+def build_font_parser():
+    """build font arg parser"""
+    
+    parser = argparse.ArgumentParser()
+
+    subparsers = parser.add_subparsers()
+    parser_font_pull = subparsers.add_parser("pull")
+    parser_font_pull.add_argument("family", help="font family name")
+    parser_font_pull.set_defaults(func=lambda args: fonts.download(args.family))
+    parser_font_list = subparsers.add_parser("list", aliases=["ls"])
+    def list_fonts():
+        fonts_dir = os.path.join(PATH_DIR_RESOURCE, "font")
+        print("\n".join([f for f in os.listdir(fonts_dir) if os.path.isdir(os.path.join(fonts_dir, f))]))
+    parser_font_list.set_defaults(func=lambda args: list_fonts())
 
     return parser
 
 def _render(raw_file, args):
     """no comment"""
+    rargs = {}
+    for a in args.rargs.strip().split(";"):
+        a = a.strip()
+        if a:
+            pair = a.split("=")
+            assert len(pair) == 2
+            rargs[pair[0].strip()] = pair[1].strip()
+    
+    log_debug(f"rargs:\n{'\n'.join([f'  {k}={v}' for k, v in rargs.items()])}")
 
     def render_dependencies(renderer: Renderer, file: str):
         """recursion"""
@@ -63,7 +88,8 @@ def _render(raw_file, args):
         log_info(f"renderer '{renderer.identifier}'")
         render_output = os.path.join(args.output, renderer.identifier)
         os.makedirs(render_output, exist_ok=True)
-        return renderer.render(file, render_output)
+        arg_ident = f"{renderer.identifier}:"
+        return renderer.render(file, render_output, {k.removeprefix(arg_ident): v for k, v in rargs.items() if k.startswith(arg_ident)})
 
     renderer = renderer_types[args.target]()
 
@@ -123,3 +149,11 @@ def run():
             raise
 
     log_info("done")
+
+def font():
+    parser = build_font_parser()
+
+    args = parser.parse_args()
+
+    if args.func:
+        args.func(args)

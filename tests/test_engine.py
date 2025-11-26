@@ -3,6 +3,7 @@ import os
 import tempfile
 
 from yaptex.engine import BuildEngine
+from yaptex.errors import YapTeXError
 
 from . import RESOURCE_DIR
 
@@ -38,7 +39,7 @@ class EngineTest(unittest.TestCase):
         source = os.path.join(RESOURCE_DIR, "source/include/cyclic_include.md")
         output = os.path.join(self.temp_dir.name, "index.md")
 
-        self.assertRaises(AssertionError, lambda: self.engine.build(source, output_dir=self.temp_dir.name))
+        self.assertRaises(YapTeXError, lambda: self.engine.build(source, output_dir=self.temp_dir.name))
 
     def test_include(self):
         source = os.path.join(RESOURCE_DIR, "source/include/include.md")

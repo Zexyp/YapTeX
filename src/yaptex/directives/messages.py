@@ -17,7 +17,7 @@ class WarningDirective(Directive):
         engine.assert_match(m)
 
         msg = str_unescape(m.group(1))
-        engine.log_file_warning(msg)
+        engine.log_file_warning(f"warning: {msg}")
 
 class ErrorDirective(Directive):
     """yap n fail"""
@@ -29,5 +29,5 @@ class ErrorDirective(Directive):
         engine.assert_match(m)
 
         msg = str_unescape(m.group(1))
-        engine.log_file_error(msg)
+        engine.log_file_error(f"error: {msg}")
         raise BuildError(msg)

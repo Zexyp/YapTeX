@@ -11,6 +11,7 @@ from markdown_it import MarkdownIt
 from ..log import log_debug, log_warning
 from . import Renderer
 from .. import PATH_DIR_RESOURCE
+from .. import fonts
 
 HTML_ENCODING = "utf8"
 
@@ -20,7 +21,7 @@ class HtmlRenderer(Renderer):
     identifier = "html"
 
     # html does not need post processing
-    def render(self, file: str, output_dir: str):
+    def render(self, file: str, output_dir: str, rargs: dict[str, str] = {}):
         assert os.path.isfile(file)
 
         styleshim = None
@@ -43,7 +44,7 @@ class HtmlRenderer(Renderer):
             #["default", "bw", "sas", "staroffice", "xcode", "monokai", "lightbulb", "github-dark", "rrt"]
             # TODO: make this configurable
 
-            formatter_style = "default"
+            formatter_style = rargs.get("code_style", "default")
             formatter = HtmlFormatter(style=formatter_style)
             if not styleshim:
                 styleshim = formatter.get_style_defs(".highlight")
@@ -59,50 +60,18 @@ class HtmlRenderer(Renderer):
 
         html_file = os.path.join(output_dir, "index.html")
 
+        font_family = rargs.get("font_family", "Bitter")
         # by default xhtml2pdf is useless because it can't even render some basic characters
-        shutil.copytree(os.path.join(PATH_DIR_RESOURCE, "font"), os.path.join(output_dir, "font"), dirs_exist_ok=True)
+        shutil.copytree(os.path.join(PATH_DIR_RESOURCE, "font", font_family), os.path.join(output_dir, "font", font_family), dirs_exist_ok=True)
 
-        def assemble_font_style(font_family):
-            # FIXME
-            print("hardcoded font nonsense")
-
-            res_path_font_regular = f"font/{font_family}/Bitter-Regular.ttf"
-            res_path_font_bold = f"font/{font_family}/Bitter-Bold.ttf"
-            res_path_font_italic = f"font/{font_family}/Bitter-Italic.ttf"
-            res_path_font_bold_italic = None
-
-            return f"""
-@font-face {{
-    font-family: {font_family};
-    src: url("{res_path_font_regular}");
-}}
-@font-face {{
-    font-family: {font_family};
-    src: url("{res_path_font_bold}");
-    font-weight: bold;
-}}
-@font-face {{
-    font-family: {font_family};
-    src: url("{res_path_font_italic}");
-    font-style: italic;
-}}
-@font-face {{
-    font-family: {font_family};
-    src: url("{res_path_font_bold_italic or res_path_font_regular}");
-    font-weight: bold;
-    font-style: italic;
-}}
-"""
-
-        font_family = "Bitter"
         content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document \\(o_o)/</title>
+    <link rel="stylesheet" href="font/{font_family}/style.css">
     <style>
-{assemble_font_style(font_family)}
     body {{
         font-family: {font_family};
     }}

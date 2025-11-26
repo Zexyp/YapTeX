@@ -154,17 +154,17 @@ class BuildEngine:
         if re.match(r'^#+ ', line):
             self.pedantic_log_file("detected fixed header")
 
-        # dynamic headering, dynheader
-        if re.match(r'^-(#+) ', line):
-            self.log_debug("dynheader")
-            line = len(self.sectionstack) * "#" + line.removeprefix("-")
-
         line = self.handle_variables(line, self.variables)
 
         if line.startswith(DIRECTIVE_CHAR):
             return self.handle_directive(line)
 
         line = self.handle_macros(line)
+
+        # dynamic headering, dynheader
+        if re.match(r'^-(#+) ', line):
+            self.log_debug("dynheader")
+            line = len(self.sectionstack) * "#" + line.removeprefix("-")
 
         # directive char escaping
         if line.startswith(f"{ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
@@ -208,7 +208,10 @@ class BuildEngine:
         reading_page_header = None # states: None = don't care; True = start was found, now reading; False = read ended
         page_header_string = ""
 
+        last_line = None
         for line in self.consume():
+            last_line = line
+
             # first line header start handling
             if first_line:
                 first_line = False
@@ -230,6 +233,9 @@ class BuildEngine:
                 continue
 
             self.feed(line)
+        
+        if last_line is not None and not last_line.endswith("\n"):
+            self.pedantic_log_file("no new line at the end of file")
 
         self.input = last_input
 
