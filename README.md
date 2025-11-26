@@ -18,6 +18,17 @@ When using directives the `#` symbol must be the first symbol of the line.
 If you want to start your line with directive-like entry, you will have to escape the special char by using a backslash (e.g. `\#`).
 Similarly, variables and macros can be escaped.
 
+### CLI
+You can ivoke the installed module simply by running a command in terminal.
+```sh
+yaptex <input-file>
+```
+
+For more info use help flag.
+```sh
+yaptex -h
+```
+
 ### Basic Directives
 #### `#include "<filepath>"`
 

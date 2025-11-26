@@ -2,8 +2,9 @@
 import os
 
 PATH_DIR_RESOURCE = os.path.join(os.path.dirname(__file__), "res")
-assert os.path.isdir(PATH_DIR_RESOURCE)
+assert os.path.isdir(PATH_DIR_RESOURCE), "resources dir missing"
 
+# la glue code
 from .renderers import *
 
 renderer_types = {}

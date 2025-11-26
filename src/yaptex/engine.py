@@ -337,7 +337,8 @@ class BuildEngine:
         def place_macro(macro_name: str, macro_args: str):
             self.log_debug(f"handle macro '{macro_name}{macro_args if macro_args else ''}'")
 
-            assert macro_name in self.macros, f"macro '{macro_name}' not defined"
+            if not macro_name in self.macros:
+                raise BuildError(f"macro '{macro_name}' not defined")
 
             m = self.macros[macro_name]
             body = m.body
@@ -348,7 +349,7 @@ class BuildEngine:
                     # clean and split args
                     args = [x.strip() for x in macro_args.strip("()").split(MACRO_ARG_SEPARATOR)]
 
-                    assert len(args) == len(m.params), "invalid number of arguments given"
+                    self.assert_that(len(args) == len(m.params), "invalid number of arguments given")
 
                     # action fuckery
                     if action:
@@ -386,7 +387,7 @@ class BuildEngine:
     def assert_match(self, m):
         """custom assert thingy"""
         if not m:
-            raise MalformedError()
+            raise MalformedError("malformed")
 
     def assert_file(self, file):
         """custom assert thingy"""

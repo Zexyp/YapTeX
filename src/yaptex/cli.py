@@ -31,7 +31,7 @@ def build_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--version', action='version', version=f"YapTeX {version(__package__)}")
-    parser.add_argument("input", help="use - for stdin as input")
+    parser.add_argument("input", help="input file (use - for stdin as input)")
     parser.add_argument("--output", default="./out", help="output directory")
     parser.add_argument("--target", choices=["raw", "md", "html", "pdf"], default="raw", help="targeted output format")
     parser.add_argument("-D", nargs='*', action="append", help="additional defines")

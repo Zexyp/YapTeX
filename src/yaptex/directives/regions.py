@@ -32,7 +32,7 @@ class EndRegionDirective(Directive):
     trigger_on = ["endregion"]
 
     def handle(self, line, engine):
-        assert len(engine.sectionstack) > 0, "no section to end"
+        engine.assert_that(len(engine.sectionstack) > 0, "no section to end")
 
         engine.section_counters.pop()
         engine.section_counters[-1] += 1

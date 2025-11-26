@@ -61,7 +61,7 @@ class BaseIfDirective(Directive):
             if if_line.startswith(self.trigger_else):
                 engine.log_directive(if_line.strip('\n'))
 
-                assert len(if_line.strip().removeprefix(self.trigger_else)) == 0, "malformed else"  # ends with new line
+                engine.assert_that(len(if_line.strip().removeprefix(self.trigger_else)) == 0, "malformed else") # ends with new line
 
                 engine.assert_that(not found_else, "multiple else statements")
                 found_else = True

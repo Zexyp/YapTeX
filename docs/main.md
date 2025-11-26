@@ -20,6 +20,8 @@ When using directives the `#` symbol must be the first symbol of the line.
 If you want to start your line with directive-like entry, you will have to escape the special char by using a backslash (e.g. `\#`).
 Similarly, variables and macros can be escaped.
 
+#include "cli.md"
+
 #region "Basic Directives"
 #include "directives/inclusion.md"
 #include "directives/region.md"

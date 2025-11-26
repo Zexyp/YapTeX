@@ -6,13 +6,14 @@ import shutil
 
 from ..utils import REGEX_GROUP_QUOTED, str_unescape
 from . import Directive
+from ..errors import BuildError
 
 def _abs_path_warn(file: str, ctx: 'BuildEngine'):
     if os.path.isabs(file):
         ctx.pedantic_log_file("absolute path")
         ctx.assert_that(False)
     else:
-        assert ctx.current_file, "relative include without parent"
+        ctx.assert_that(ctx.current_file, "relative include without parent")
 
 class IncludeDirective(Directive):
     """the append thingy"""
@@ -30,7 +31,8 @@ class IncludeDirective(Directive):
         filepath = os.path.normpath(os.path.join(os.path.dirname(engine.current_file), filepath))
 
         engine.assert_file(filepath)
-        assert filepath not in engine.filestack, "cyclic include"
+        if not (filepath not in engine.filestack):
+            raise BuildError("cyclic include")
 
         engine.process_file(filepath)
 
