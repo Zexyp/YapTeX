@@ -78,7 +78,8 @@ def _render(raw_file, args):
             assert len(pair) == 2
             rargs[pair[0].strip()] = pair[1].strip()
     
-    log_debug(f"rargs:\n{'\n'.join([f'  {k}={v}' for k, v in rargs.items()])}")
+    if rargs:
+        log_debug(f"rargs:\n{'\n'.join([f'  {k}={v}' for k, v in rargs.items()])}")
 
     def render_dependencies(renderer: Renderer, file: str):
         """recursion"""

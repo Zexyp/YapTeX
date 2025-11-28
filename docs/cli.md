@@ -20,7 +20,7 @@ yaptex <input-file> --target html --rargs "html:font_family=Roboto"
 ```
 
 > [!NOTE]
-> HTML renderer is used as a middle step when targeting PDF.
+> **HTML** renderer is used as a middle step when targeting **PDF**.
 
 -## Fonts
 You can download more fonts from **Google Fonts** using the following command.
