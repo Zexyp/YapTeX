@@ -1,0 +1,2 @@
+#undef HELLO
+?HELLO

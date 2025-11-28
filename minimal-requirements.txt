@@ -1,0 +1,7 @@
+colorama
+xhtml2pdf
+markdown-it-py
+linkify-it-py
+Pygments
+lxml
+pyyaml

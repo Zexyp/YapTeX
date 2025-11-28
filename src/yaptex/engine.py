@@ -10,7 +10,7 @@ import sys
 import os
 import re
 
-import yaml
+#import yaml
 
 from . import utils
 from .utils import str_escape, REGEX_ESCAPE_CHAR, PAGE_HEADER_SEPARATOR, REGEX_VARIABLE_CHAR, VARIABLE_FORMAT_SEPARATOR, VARIABLE_CHAR, REGEX_MACRO_CHAR, MACRO_CHAR, ESCAPE_CHAR, DIRECTIVE_CHAR, REGEX_IDENTIFIER, MACRO_ARG_SEPARATOR
@@ -226,7 +226,7 @@ class BuildEngine:
                 if line.startswith(PAGE_HEADER_SEPARATOR):
                     reading_page_header = False
                     self.log_debug("parsing page header")
-                    print(yaml.safe_load(page_header_string))
+                    #print(yaml.safe_load(page_header_string))
                     raise NotImplementedError
                     continue # skip this line
                 page_header_string += line # eat
