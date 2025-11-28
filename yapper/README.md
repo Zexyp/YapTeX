@@ -12,7 +12,7 @@ Yapper is a Visual Studio Code that makes it easy to edit files for YapTeX.
 ## Requirements
 YapTeX [installation](https://github.com/Zexyp/YapTeX?tab=readme-ov-file#installation). is required.
 
-Also install [Live Preview](https://marketplace.visualstudio.com/items?itemName=ms-vscode.live-server) extension for viewing HTML outputs.
+Also install [Live Preview](https://marketplace.visualstudio.com/items?itemName=ms-vscode.live-server) extension for viewing **HTML** outputs.
 
 *(PDF previewing is in the works)*
 
@@ -20,7 +20,10 @@ Also install [Live Preview](https://marketplace.visualstudio.com/items?itemName=
 This extension contributes the following settings:
 
 * `yapper.environmentPath`: Path to the Python virtual environment where YapTeX is [installed](#requirements).
-* `yapper.verbose`: Run YapTeX with `--verbose` flag.
+* `yapper.outputDirectory`: Output drectory name.
+* `yapper.arguments.flags.verbose`: Run YapTeX with `--verbose` flag.
+* `yapper.arguments.flags.pedantic`: Run YapTeX with `--pedantic` flag.
+* `yapper.arguments.rargs`: Renderer arguments.
 
 ## Known Issues
 \-
@@ -28,14 +31,14 @@ This extension contributes the following settings:
 ## Release Notes
 **Users appreciate release notes as you update your extension.**
 
-### 0.0.1
+### 0.0.2
+More configurable arguments
 
 ---
 
 ## TODO: Following extension guidelines
-
 Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
 
 * [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
 
-**Enjoy!**
+**Enjoy the yap!**

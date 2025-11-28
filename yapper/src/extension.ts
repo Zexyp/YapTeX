@@ -73,8 +73,13 @@ export function activate(context: vscode.ExtensionContext) {
             return;
 
         const config = vscode.workspace.getConfiguration("yapper");
-        const cfgEnvironmentPath = config.get<string>("environmentPath") || "";
-        const cfgVerbose = config.get<string>("verbose");
+        const cfgEnvironmentPath = config.get<string>("environmentPath");
+        const cfgOutputDir = config.get<string>("outputDirectory");
+
+        if (!cfgOutputDir || !cfgEnvironmentPath) {
+            vscode.window.showErrorMessage("Unusable configuration");
+            return;
+        }
 
         // pick the python inside the venv
         const pythonPath =
@@ -88,15 +93,22 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         let workdir = getRootWorkspaceFolder() || getTempDir()
-        workdir = path.join(workdir, "yaptex-out")
+        workdir = path.join(workdir, cfgOutputDir)
         
         vscode.window.showInformationMessage("Building...");
 
         const shouldUseStdin = editor.document.isUntitled
 
         const args = ["-m", "yaptex", shouldUseStdin ? "-" : editor.document.uri.fsPath, "--output", workdir];
-        if (cfgVerbose)
+        
+        if (config.get<string>("arguments.flags.verbose"))
             args.push("--verbose");
+        if (config.get<string>("arguments.flags.pedantic"))
+            args.push("--pedantic");
+        let cfgRargs = config.get<string>("arguments.rargs")
+        if (cfgRargs)
+            args.push("--rargs", cfgRargs.replace("\n", ";"));
+
         if (target.value)
             args.push("--target", target.value);
         

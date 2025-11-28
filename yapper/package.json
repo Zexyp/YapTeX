@@ -3,7 +3,7 @@
   "displayName": "Yapper",
   "publisher": "zexyp",
   "description": "YapTeX editing",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.105.0"
   },
@@ -66,14 +66,32 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Path to the Python virtual environment where YapTeX is [installed](https://github.com/Zexyp/YapTeX?tab=readme-ov-file#installation).",
-          "scope": "machine-overridable",
-          "format": "path"
+          "scope": "machine-overridable"
         },
-        "yapper.verbose": {
+        "yapper.outputDirectory": {
+          "type": "string",
+          "default": "yaptex-out",
+          "markdown": "Output drectory name.",
+          "scope": "machine-overridable"
+        },
+        "yapper.arguments.flags.verbose": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Run YapTeX with `--verbose` flag.",
           "scope": "machine-overridable"
+        },
+        "yapper.arguments.flags.pedantic": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Run YapTeX with `--pedantic` flag.",
+          "scope": "machine-overridable"
+        },
+        "yapper.arguments.rargs": {
+          "type": "string",
+          "default": "",
+          "description": "Renderer arguments. New lines get atomatically replaced with semicolons.",
+          "scope": "machine-overridable",
+          "editPresentation": "multilineText"
         }
       }
     }
