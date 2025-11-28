@@ -8,6 +8,27 @@ col_error = ""
 col_warning = ""
 col_reset = ""
 
+def color_activate():
+    if not colorama:
+        return
+
+    global col_debug, col_directive, col_error, col_warning, col_reset
+
+    col_debug = colorama.Fore.LIGHTBLACK_EX
+    col_directive = colorama.Fore.CYAN
+    col_error = colorama.Fore.RED
+    col_warning = colorama.Fore.YELLOW
+    col_reset = colorama.Fore.RESET
+
+def color_deactivate():
+    global col_debug, col_directive, col_error, col_warning, col_reset
+
+    col_debug = ""
+    col_directive = ""
+    col_error = ""
+    col_warning = ""
+    col_reset = ""
+
 def log_print(msg):
     """hate docstrings"""
     print(msg, file=sys.stdout)
@@ -37,10 +58,6 @@ try:
 
     colorama.init()
 
-    col_debug = colorama.Fore.LIGHTBLACK_EX
-    col_directive = colorama.Fore.CYAN
-    col_error = colorama.Fore.RED
-    col_warning = colorama.Fore.YELLOW
-    col_reset = colorama.Fore.RESET
+    color_activate()
 except ImportError as e:
     log_warning(f"no coloring ({e})")

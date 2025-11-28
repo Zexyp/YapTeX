@@ -7,7 +7,7 @@ from importlib.metadata import version
 
 from . import renderer_types
 from .engine import BuildEngine
-from .log import log_info, log_print, log_error, log_debug
+from .log import log_info, log_print, log_error, log_debug, color_activate, color_deactivate
 from .renderers import Renderer
 from . import fonts
 from . import PATH_DIR_RESOURCE
@@ -32,7 +32,8 @@ def build_parser():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--version', action='version', version=f"YapTeX {version(__package__)}")
+    parser.add_argument("--version", action="version", version=f"YapTeX {version(__package__)}")
+    parser.add_argument("--color", choices=["auto", "off", "force"], default="auto", help="usage of color in log")
     parser.add_argument("input", help="input file (use - for stdin as input)")
     parser.add_argument("--output", default="./out", help="output directory")
     parser.add_argument("--target", choices=["raw", "md", "html", "pdf"], default="raw", help="targeted output format")
@@ -118,6 +119,21 @@ def _build(args):
 
     return raw_file
 
+def _colorize(mode: str):
+    if "NO_COLOR" in os.environ and len(os.environ["NO_COLOR"]):
+        color_deactivate()
+        log_debug("user does not wish for color")
+    
+    match mode:
+        case "auto":
+            (color_deactivate if sys.stdout.isatty() else color_activate)()
+        case "off":
+            color_deactivate()
+        case "force":
+            color_activate()
+        case _:
+            assert False, "invalid color mode"
+
 def run():
     """make it move, used for cli"""
 
@@ -125,8 +141,11 @@ def run():
 
     args = parser.parse_args()
 
-    log_print("░▀▄▀▒▄▀▄▒█▀▄░▀█▀▒██▀░▀▄▀ ™")
-    log_print("░▒█▒░█▀█░█▀▒░▒█▒░█▄▄░█▒█")
+    _colorize(args.color)
+
+    if args.color != "off":
+        log_print("░▀▄▀▒▄▀▄▒█▀▄░▀█▀▒██▀░▀▄▀ ™")
+        log_print("░▒█▒░█▀█░█▀▒░▒█▒░█▄▄░█▒█")
 
     log_info("building...")
     try:
