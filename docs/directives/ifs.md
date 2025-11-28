@@ -1,7 +1,4 @@
-?DECLARE_DIRECTIVE(`#if "<VARIABLE>"` `#elif "<VARIABLE>"` `#else` `#endif`)
-
-#warning "TODO"
-
+?DECLARE_DIRECTIVE(`#if <VARIABLE>)
 Includes content if variable is defined and isn't empty (or not zero). Also needs to be ended like other block directives.
 ```md
 \#if HELLO

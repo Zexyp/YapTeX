@@ -26,7 +26,7 @@ You can ivoke the installed module simply by running a command in terminal.
 yaptex <input-file>
 ```
 
-For more info use help flag.
+For more info use help flag:
 ```sh
 yaptex -h
 ```
@@ -190,9 +190,7 @@ Copies a given file into directory that is relative to output directory. Mostly 
 
 ---
 
-#### `#if "<VARIABLE>"` `#elif "<VARIABLE>"` `#else` `#endif`
-
-
+#### `#if <VARIABLE>
 
 Includes content if variable is defined and isn't empty (or not zero). Also needs to be ended like other block directives.
 ```md
