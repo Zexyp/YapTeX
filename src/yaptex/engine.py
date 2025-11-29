@@ -19,7 +19,10 @@ from .structures import Macro
 from .errors import YapTeXError, BuildError, BuildFileNotFoundError, MalformedError
 from .directives import *
 
-PER_LINE_VERBOSITY = False
+PER_LINE_VERBOSITY = True
+
+_variable_pattern = rf'{REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
+_macro_pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
 
 class BuildEngine:
     """main machinery"""
@@ -158,6 +161,9 @@ class BuildEngine:
 
         if line.startswith(DIRECTIVE_CHAR):
             return self.handle_directive(line)
+        # directive char escaping
+        if line.startswith(f"{ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
+            line = line.removeprefix(ESCAPE_CHAR)
 
         line = self.handle_macros(line)
 
@@ -165,10 +171,7 @@ class BuildEngine:
         if re.match(r'^-(#+) ', line):
             self.log_debug("dynheader")
             line = len(self.sectionstack) * "#" + line.removeprefix("-")
-
-        # directive char escaping
-        if line.startswith(f"{ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
-            line = line.removeprefix(ESCAPE_CHAR)
+        
         # dynheader escaping
         if re.match(rf'^{REGEX_ESCAPE_CHAR}-(#+) ', line):
             line = line.removeprefix(ESCAPE_CHAR)
@@ -189,7 +192,7 @@ class BuildEngine:
             directive.handle(line.removeprefix(DIRECTIVE_CHAR), self)
             return ""
 
-        # possible header
+        # possible header, only if regions are not used
         if not line.startswith(f"{DIRECTIVE_CHAR} "):
             self.pedantic_log_file("unreadable directive")
 
@@ -272,6 +275,7 @@ class BuildEngine:
         self.current_file_line_number = 0
         while line := self.input.readline():
             self.current_file_line_number += 1
+            self.log_line("reading: " + repr(line))
             yield line
         else:
             if len(self.sectionstack) != initial_sections_count:
@@ -283,6 +287,8 @@ class BuildEngine:
     # adds line to be processed
     def feed(self, line: str):
         """*gulps cutely*, places a line to ouptut"""
+        self.log_line("feeding: " + repr(line))
+
         assert line is not None
         line = self.process_line(line)
         assert line is not None
@@ -299,7 +305,9 @@ class BuildEngine:
     # replaces variables with their values
     def handle_variables(self, body: str, vrbls: dict[str, str]) -> str:
         """put vars"""
-        if not vrbls:
+        self.log_line("body for variables handling: " + repr(body))
+        
+        if not vrbls or not body:
             return body
 
         def place_variable(match):
@@ -325,10 +333,10 @@ class BuildEngine:
 
         # for now all modifiers are lowercase
         # fixme: merge subs
-        pattern = rf'{REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
-        result = re.sub(rf'(?<!{REGEX_ESCAPE_CHAR})' + pattern, place_variable, body)
-        # cleanup
-        result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
+        result = re.sub(rf'(?<!{REGEX_ESCAPE_CHAR})' + _variable_pattern, place_variable, body)
+        
+        # escaping variable
+        result = re.sub(rf'{REGEX_ESCAPE_CHAR}({_variable_pattern})', r'\1', result)
 
         if VARIABLE_CHAR in result:
             self.log_file_warning("scareware: unresolved variable?")
@@ -338,7 +346,11 @@ class BuildEngine:
     # handles macros on line
     def handle_macros(self, line) -> str:
         """put macros"""
-        self.log_line("line for macro handling: " + repr(line))
+        self.log_line("line for macros handling: " + repr(line))
+
+        if not line:
+            return line
+
         # fully handles a macro
         def place_macro(macro_name: str, macro_args: str):
             self.log_debug(f"handle macro '{macro_name}{macro_args if macro_args else ''}'")
@@ -365,23 +377,24 @@ class BuildEngine:
                         body = self.handle_variables(body, dict(zip(m.params, args)))
                     else:
                         assert False, "useless macro"
+                    
+                processed = ""
+                for body_line in re.split(r'(\n)', body):
+                    processed += self.process_line(body_line)
 
-                if body:
-                    # file context not possible due to relative paths
-                    for body_line in re.split(r'(\n)', body):
-                        self.feed(body_line)
+                return processed
+                
             except:
                 self.log_file_warning(f"during '{macro_name}' macro expansion an error occurred")
                 raise
 
-            return "" # does not return anything usable
-
         # TODO: kwargs
         # fixme: merge subs
-        pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
-        result = re.sub(rf'(?<!{REGEX_ESCAPE_CHAR})' + pattern, lambda m: place_macro(m.group(1), m.group(2)), line)
-        # cleanup
-        result = re.sub(rf'{REGEX_ESCAPE_CHAR}({pattern})', r'\1', result)
+        result = re.sub(rf'(?<!{REGEX_ESCAPE_CHAR})' + _macro_pattern, lambda m: place_macro(m.group(1), m.group(2)), line)
+        # file context not possible due to relative paths
+        
+        # escaping macros
+        result = re.sub(rf'{REGEX_ESCAPE_CHAR}({_macro_pattern})', r'\1', result)
 
         if MACRO_CHAR in result:
             self.log_file_warning(f"scareware: unresolved macro?")
@@ -420,28 +433,28 @@ class BuildEngine:
 
     def log_debug(self, msg: str):
         """engine log"""
-        log_debug(msg)
+        log_debug(f"[eng] {msg}")
 
     def log_line(self, msg: str):
         """high debug thingy"""
         if PER_LINE_VERBOSITY:
-            self.log_debug(f"eng: l: {msg}")
+            self.log_debug(f"l: {msg}")
 
     def log_directive(self, msg: str):
         """engine log"""
-        log_directive(f"eng: {msg}")
+        log_directive(f"[eng] {msg}")
 
     def log_info(self, msg: str):
         """engine log"""
-        log_info(f"eng: {msg}")
+        log_info(f"[eng] {msg}")
 
     def log_error(self, msg: str):
         """engine log"""
-        log_error(f"eng: {msg}")
+        log_error(f"[eng] {msg}")
 
     def log_warning(self, msg: str):
         """engine log"""
-        log_warning(f"eng: {msg}")
+        log_warning(f"[eng] {msg}")
 
     def log_file_error(self, msg: str):
         """engine log"""
