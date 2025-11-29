@@ -19,7 +19,7 @@ from .structures import Macro
 from .errors import YapTeXError, BuildError, BuildFileNotFoundError, MalformedError
 from .directives import *
 
-PER_LINE_VERBOSITY = True
+PER_LINE_VERBOSITY = False
 
 _variable_pattern = rf'{REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
 _macro_pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
@@ -379,7 +379,7 @@ class BuildEngine:
                         assert False, "useless macro"
                     
                 processed = ""
-                for body_line in re.split(r'(\n)', body):
+                for body_line in body.splitlines(keepends=True):
                     processed += self.process_line(body_line)
 
                 return processed
