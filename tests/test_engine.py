@@ -17,7 +17,7 @@ def _cmp_files(expected, actual):
     diff = list(unified_diff(expected_lines, actual_lines))
     assert diff == [], "Unexpected file contents:\n" + "".join(diff)
 
-class EngineTest(unittest.TestCase):
+class TestEngine(unittest.TestCase):
     def setUp(self):
         self.engine = BuildEngine()
         self.temp_dir = tempfile.TemporaryDirectory()

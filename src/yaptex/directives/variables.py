@@ -28,7 +28,7 @@ class SetDirective(Directive):
         engine.assert_match(m)
 
         variable_name = m.group(1)
-        variable_value = str_unescape(m.group(3) if m.group(3) is not None else m.group(2) or "")
+        variable_value = str_unescape(engine.handle_variables(m.group(3), engine.variables) if m.group(3) is not None else m.group(2) or "")
 
         engine.variables[variable_name] = variable_value
 

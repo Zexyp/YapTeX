@@ -157,14 +157,13 @@ class BuildEngine:
         if re.match(r'^#+ ', line):
             self.pedantic_log_file("detected fixed header")
 
-        line = self.handle_variables(line, self.variables)
-
         if line.startswith(DIRECTIVE_CHAR):
             return self.handle_directive(line)
         # directive char escaping
         if line.startswith(f"{ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
             line = line.removeprefix(ESCAPE_CHAR)
 
+        line = self.handle_variables(line, self.variables)
         line = self.handle_macros(line)
 
         # dynamic headering, dynheader
