@@ -27,16 +27,19 @@ class PdfRenderer(Renderer):
     def render(self, file: str, output_dir: str, rargs: dict[str, str] = {}):
         pdf_file = os.path.join(output_dir, "index.pdf")
         with open(pdf_file, mode="wb") as pdf, open(file, mode="r", encoding=HTML_ENCODING) as html_file:
-            workdir = os.path.dirname(file)
+            filedir = os.path.dirname(file)
+            workpath = os.getcwd()
 
             def link_callback(uri, rel):
                 if uri.startswith("data:"):
-                    return None
+                    raise NotImplementedError
                 if os.path.isabs(uri):
-                    return None
+                    raise NotImplementedError
 
                 log_debug(f"resolving '{uri}'")
-                return os.path.join(workdir, uri)
+                result = os.path.join(filedir, os.path.dirname(os.path.relpath(rel, workpath)), uri)
+                log_debug(f"resulting '{result}'")
+                return result
 
             pisa_status = pisa.CreatePDF(html_file.read(), dest=pdf, link_callback=link_callback)
 
