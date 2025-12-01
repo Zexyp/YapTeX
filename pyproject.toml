@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "YapTeX"
-version = "0.2.0"
+version = "0.2.1"
 description = "Markdown and plain text preprocessor."
 authors = [
   { name="Zexyp", email="placeholder@localhost.cz" },
