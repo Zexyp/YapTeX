@@ -101,3 +101,7 @@ def download(family: str):
         file.write(css)
 
     log_info("font downloaded")
+
+def installed() -> list[str]:
+    fonts_dir = os.path.join(PATH_DIR_RESOURCE, "font")
+    return [f for f in os.listdir(fonts_dir) if os.path.isdir(os.path.join(fonts_dir, f))]

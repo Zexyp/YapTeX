@@ -164,10 +164,7 @@ def build_font_parser():
     parser_font_pull.add_argument("family", help="font family name")
     parser_font_pull.set_defaults(func=lambda args: fonts.download(args.family))
     parser_font_list = subparsers.add_parser("list", aliases=["ls"])
-    def list_fonts():
-        fonts_dir = os.path.join(PATH_DIR_RESOURCE, "font")
-        print("\n".join([f for f in os.listdir(fonts_dir) if os.path.isdir(os.path.join(fonts_dir, f))]))
-    parser_font_list.set_defaults(func=lambda args: list_fonts())
+    parser_font_list.set_defaults(func=lambda args: print("\n".join(fonts.installed())))
 
     return parser
 
