@@ -18,6 +18,7 @@ from .log import log_debug, log_warning, log_error, log_directive, log_info
 from .structures import Macro
 from .errors import YapTeXError, BuildError, BuildFileNotFoundError, MalformedError
 from .directives import *
+from . import expressions
 
 PER_LINE_VERBOSITY = False
 
@@ -72,7 +73,8 @@ class BuildEngine:
         self.sectionstack: list[str] = []
         self.section_counters: list[int] = [1]
         self.macros: dict[str, Macro] = {
-            "sizeof": Macro(params=None, body=None, action=lambda args, engine: engine.feed(str(len(args[0])))),
+            "sizeof": Macro(params=[None], body=None, action=lambda args, engine: str(len(args[0]))),
+            #"calc": Macro(params=[None], body=None, action=lambda args, engine: raise NotImplementedError),
         }
         dtnow = datetime.now()
         self.variables: dict[str, str | Callable] = {
@@ -371,7 +373,7 @@ class BuildEngine:
                     # action fuckery
                     if action:
                         assert body is None, "unusable body"
-                        action(args, self)
+                        body = action(args, self)
                     elif body is not None:
                         body = self.handle_variables(body, dict(zip(m.params, args)))
                     else:

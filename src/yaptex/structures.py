@@ -1,7 +1,7 @@
 """Contains dataclass structures"""
 
 from dataclasses import dataclass
-from typing import Callable, Any
+from typing import Callable
 
 @dataclass
 class Macro:
@@ -9,5 +9,5 @@ class Macro:
 
     params: list[str] = None
     body: str = None
-    action: Callable[[list[str], 'BuildEngine'], Any] = None
+    action: Callable[[list[str], 'BuildEngine'], str] = None
     file: str = NotImplementedError
