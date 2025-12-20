@@ -250,6 +250,7 @@ class BuildEngine:
         self.log_info(f"processing '{filepath}'")
 
         if filepath == "-":
+            sys.stdin.reconfigure(encoding='utf8')
             stream = sys.stdin
         else:
             assert os.path.isfile(filepath), f"file '{filepath}' does not exist"
