@@ -99,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const shouldUseStdin = editor.document.isUntitled
 
-        const args = ["-m", "yaptex", shouldUseStdin ? "-" : editor.document.uri.fsPath, "--output", workdir];
+        const args = ["-m", "yaptex", shouldUseStdin ? "-" : editor.document.uri.fsPath, "--output", workdir, "--color", "off"];
         
         if (config.get<string>("arguments.flags.verbose"))
             args.push("--verbose");
