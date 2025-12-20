@@ -369,7 +369,6 @@ Notes based on pylint yap:
 > Using YapTeX may result in:
 > - High blood pressure
 > - Existential crises
-> - Endless nightmares
-> - Complete failure of documentation
+> - Nightmares
 
 *This document was built using YapTeX*

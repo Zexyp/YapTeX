@@ -55,7 +55,6 @@ Similarly, variables and macros can be escaped.
 > Using YapTeX may result in:
 > - High blood pressure
 > - Existential crises
-> - Endless nightmares
-> - Complete failure of documentation
+> - Nightmares
 
 *This document was built using YapTeX*
