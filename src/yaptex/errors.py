@@ -13,3 +13,6 @@ class MalformedError(BuildError):
 
 class BuildFileNotFoundError(BuildError, FileNotFoundError):
     """did the app or you got lost?"""
+
+class RenderingError(YapError):
+    """spaghetti failed"""
