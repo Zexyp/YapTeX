@@ -8,9 +8,9 @@
     - Markdown
     - HTML
     - PDF
-- Cross-platform (**WallHoles** and **Penguins**!)
+- Cross-platform (**WallHoles**, **Penguins**, and that inconsitent **HalfEatenAppleOS™**!)
 - Only pip dependencies
-- Macros
+- Macros and variables
 - Customization
 - Font management
 #endregion

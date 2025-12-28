@@ -7,9 +7,9 @@
     - Markdown
     - HTML
     - PDF
-- Cross-platform (**WallHoles** and **Penguins**!)
+- Cross-platform (**WallHoles**, **Penguins**, and that inconsitent **HalfEatenAppleOS™**!)
 - Only pip dependencies
-- Macros
+- Macros and variables
 - Customization
 - Font management
 
@@ -41,7 +41,7 @@ yaptex <input-file> --target html --rargs "html:font_family=Roboto"
 ```
 
 > [!NOTE]
-> HTML renderer is used as a middle step when targeting PDF.
+> **HTML** renderer is used as a middle step when targeting **PDF**.
 
 #### Fonts
 You can download more fonts from **Google Fonts** using the following command.
@@ -63,7 +63,6 @@ Includes another file.
 #include "some/other/file.md"
 ```
 
-
 ---
 
 
@@ -74,7 +73,6 @@ Includes another file raw without processing it.
 ```md
 #embed "some/other/file.txt"
 ```
-
 
 ---
 
@@ -93,7 +91,6 @@ If you want to dynamically select the current depth of a title you can use `-#`
 ```md
 -# Hello
 ```
-
 
 ---
 
@@ -132,7 +129,6 @@ You can also remove defines.
 #undef HELLO
 ```
 
-
 ---
 
 #### `#pagebreak`
@@ -142,7 +138,6 @@ Insert page breaking feature.
 ```md
 #pagebreak
 ```
-
 
 ---
 
@@ -162,7 +157,6 @@ Sets a custom variable
 #set TEXT_VAR = "text"
 ```
 
-
 ---
 
 
@@ -173,7 +167,6 @@ Increments a given variable by specified amount (default is 1).
 ```md
 #inc HELLO_VAR 1
 ```
-
 
 ---
 
@@ -186,7 +179,6 @@ Decrements a given variable by specified amount (default is 1).
 #dec HELLO_VAR 1
 ```
 
-
 ---
 
 
@@ -198,7 +190,6 @@ Copies a given file into directory that is relative to output directory. Mostly 
 ```md
 #copy "images/memisek.jpg" "assets"
 ```
-
 
 ---
 
@@ -214,7 +205,6 @@ BYE set
 I have no idea what's going on...
 #endif
 ```
-
 
 ---
 
@@ -246,7 +236,6 @@ Nothing is defined :(
 #endif
 ```
 
-
 ---
 
 #### `#warning "<message>"`
@@ -256,7 +245,6 @@ Prints a message while building.
 ```md
 #warning "We are doing number of cool things..."
 ```
-
 
 ---
 
@@ -268,7 +256,6 @@ Prints a message and stops the build.
 ```md
 #error "Whoops..."
 ```
-
 
 ---
 
