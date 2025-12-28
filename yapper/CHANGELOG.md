@@ -6,6 +6,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.3]
+- Force no color
 
 ## [0.0.2]
 - More configurable arguments

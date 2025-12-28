@@ -31,8 +31,8 @@ This extension contributes the following settings:
 ## Release Notes
 **Users appreciate release notes as you update your extension.**
 
-### 0.0.2
-More configurable arguments
+### 0.0.3
+Force no color
 
 ---
 
