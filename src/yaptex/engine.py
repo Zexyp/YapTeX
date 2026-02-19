@@ -367,7 +367,7 @@ class BuildEngine:
             try:
                 if macro_args:
                     # clean and split args
-                    args = [x.strip() for x in macro_args.strip("()").split(MACRO_ARG_SEPARATOR)]
+                    args = [x.strip() for x in macro_args.removeprefix("(").removesuffix(")").split(MACRO_ARG_SEPARATOR)]
 
                     self.assert_that(len(args) == len(m.params), "invalid number of arguments given")
 
