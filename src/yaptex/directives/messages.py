@@ -13,6 +13,9 @@ class WarningDirective(Directive):
     trigger_on = ["warning"]
 
     def handle(self, line, engine):
+        # FIXME: very manual fix
+        line = engine.handle_variables(line, engine.variables)
+
         m = re.match(rf'^warning\s+{REGEX_GROUP_QUOTED}$', line)
         engine.assert_match(m)
 
@@ -25,6 +28,9 @@ class ErrorDirective(Directive):
     trigger_on = ["error"]
 
     def handle(self, line, engine):
+        # FIXME: very manual fix
+        line = engine.handle_variables(line, engine.variables)
+
         m = re.match(rf'^error\s+{REGEX_GROUP_QUOTED}$', line)
         engine.assert_match(m)
 
