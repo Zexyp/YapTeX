@@ -1,6 +1,7 @@
 
 # YapTeX
-**YapTeX** is a **Markdown** and *plain text* preprocessor. It's **the** very *cool* and simply overcomplicated solution.
+**YapTeX** is a **Markdown** and <ins>plain text</ins> <sup>state of the shitpost</sup> preprocessor.\
+It's the very *cool* and simply overcomplicated solution.
 
 ## Features
 - Build targets
@@ -354,8 +355,6 @@ Notes based on pylint yap:
 
 > [!WARNING]
 > Using YapTeX may result in:
-> - High blood pressure
 > - Existential crises
-> - Nightmares
 
 *This document was built using YapTeX*
