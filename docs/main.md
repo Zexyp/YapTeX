@@ -1,7 +1,8 @@
 #include "utils.md"
 
 #region "YapTeX"
-**YapTeX** is a **Markdown** and *plain text* preprocessor. It's **the** very *cool* and simply overcomplicated solution.
+**YapTeX** is a **Markdown** and <ins>plain text</ins> <sup>state of the shitpost</sup> preprocessor.\
+It's the very *cool* and simply overcomplicated solution.
 
 #region "Features"
 - Build targets
@@ -26,8 +27,11 @@ Similarly, variables and macros can be escaped.
 #region "Basic Directives"
 #include "directives/inclusion.md"
 #include "directives/region.md"
-#include "directives/define.md"
 #include "directives/pagebreak.md"
+#endregion
+
+#region "Macros"
+#include "directives/define.md"
 #endregion
 
 #region "Variable Directives"
@@ -41,7 +45,6 @@ Similarly, variables and macros can be escaped.
 #endregion
 
 #include "variables.md"
-
 #endregion
 
 #include "installation.md"

@@ -95,6 +95,18 @@ If you want to dynamically select the current depth of a title you can use `-#`
 
 ---
 
+#### `#pagebreak`
+
+
+Insert page breaking feature.
+```md
+#pagebreak
+```
+
+---
+
+
+### Macros
 #### `#define <NAME>[(<ARG>...)]`
 
 
@@ -128,16 +140,6 @@ For multiline ones escape the new line.
 You can also remove defines.
 ```md
 #undef HELLO
-```
-
----
-
-#### `#pagebreak`
-
-
-Insert page breaking feature.
-```md
-#pagebreak
 ```
 
 ---
@@ -194,7 +196,7 @@ Copies a given file into directory that is relative to output directory. Mostly 
 
 ---
 
-#### `#if <VARIABLE>
+#### `#if <VARIABLE>`
 
 Includes content if variable is defined and isn't empty (or not zero). Also needs to be ended like other block directives.
 ```md
@@ -306,7 +308,6 @@ You can use some special predefined variables.
 - `__LINE__`: current line
 
 
-
 ## Installation
 ***TODO:** installation*
 
@@ -348,13 +349,15 @@ pylint src/yaptex/**/*.py
 Notes based on pylint yap:
 - If the *docstring* is not needed fill it with some yap (best is to use something thematic).
 - "Too few public methods" indicates that the file or mechanism might be too clean. There is no point in making it more stupid.
-- Pylint is not deterministic.
+- Pylint is non-deterministic.
 
 
 ---
 
 > [!WARNING]
 > Using YapTeX may result in:
+> - High blood pressure
 > - Existential crises
+> - Nightmares
 
 *This document was built using YapTeX*

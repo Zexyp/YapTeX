@@ -22,4 +22,4 @@ pylint src/yaptex/**/*.py
 Notes based on pylint yap:
 - If the *docstring* is not needed fill it with some yap (best is to use something thematic).
 - "Too few public methods" indicates that the file or mechanism might be too clean. There is no point in making it more stupid.
-- Pylint is not deterministic.
+- Pylint is non-deterministic.
