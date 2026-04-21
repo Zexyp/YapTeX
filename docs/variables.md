@@ -17,19 +17,19 @@ There are multiple variable formatting options while pasting. You can access the
     - `slug`: slufify
     - `esc`: escape special characters (eg. `"`)
 
-#set _HELLO "C:/Users/faFa/je \"cYp\"?.txt"
+#set HELLO "C:/Users/faFa/je \"cYp\"?.txt"
 
 ```md
-\%{HELLO:l} -> %{_HELLO:l}
-\%{HELLO:u} -> %{_HELLO:u}
-\%{HELLO:t} -> %{_HELLO:t}
+\%{HELLO:l} -> %{HELLO:l}
+\%{HELLO:u} -> %{HELLO:u}
+\%{HELLO:t} -> %{HELLO:t}
 
-\%{HELLO:bn} -> %{_HELLO:bn}
-\%{HELLO:dn} -> %{_HELLO:dn}
+\%{HELLO:bn} -> %{HELLO:bn}
+\%{HELLO:dn} -> %{HELLO:dn}
 
-\%{HELLO:html} -> %{_HELLO:html}
-\%{HELLO:slug} -> %{_HELLO:slug}
-\%{HELLO:esc}  -> %{_HELLO:esc}
+\%{HELLO:html} -> %{HELLO:html}
+\%{HELLO:slug} -> %{HELLO:slug}
+\%{HELLO:esc}  -> %{HELLO:esc}
 ```
 
 #region "Special Variables"

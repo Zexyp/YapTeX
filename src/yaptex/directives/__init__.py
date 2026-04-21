@@ -2,6 +2,8 @@
 
 from abc import ABC, abstractmethod
 import re
+import argparse
+import shlex
 
 from ..utils import REGEX_NUMBER_INT, REGEX_GROUP_QUOTED
 
@@ -27,7 +29,29 @@ class ArgDirective(Directive, ABC):
     def __init__(self):
         super().__init__()
 
-        raise NotImplementedError
+        self.parser = self.build_parser()
+    
+    def handle(self, line: str, engine: 'BuildEngine'):
+        line = line.split(" ", maxsplit=1)[-1]
+        line_args = shlex.split(line)
+        
+        try:
+            try:
+                args = self.parser.parse_args(line_args)
+            except SystemExit as e:
+                engine.assert_that(False, "arg directive failed")
+            
+            if not hasattr(args, "func"):
+                raise argparse.ArgumentError(message="unusable")
+            
+            engine.feed_raw(args.func(args))
+        except argparse.ArgumentError as e:
+            msg = msg.strip()
+            engine.assert_that(False, msg)
+    
+    @abstractmethod
+    def build_parser(self) -> argparse.ArgumentParser:
+        """parser build goes here"""
 
 from .ifs import IfDirective,  IfDefDirective
 from .messages import WarningDirective, ErrorDirective
@@ -35,6 +59,7 @@ from .defines import DefineDirective, UndefineDirective
 from .variables import SetDirective, IncrementDirective, DecrementDirective
 from .files import IncludeDirective, EmbedDirective, CopyDirective, StyleDirective
 from .regions import RegionDirective, EndRegionDirective
+from .qr import QrDirective
 
 class PragmaDirective(Directive):
     """today is not the day"""

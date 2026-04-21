@@ -15,6 +15,8 @@ from .. import fonts
 
 HTML_ENCODING = "utf8"
 
+# TODO: blockquote [!TYPE]
+
 class HtmlRenderer(Renderer):
     """renderer for html"""
 
@@ -97,6 +99,10 @@ class HtmlRenderer(Renderer):
         # TODO: decide behaviour (relative, assets)
         # this is keep relative strategy
         for path in referenced_paths:
+            if path.startswith("data"):
+                log_debug(f"skip data")
+                continue
+
             log_debug(f"referenced path '{path}'")
 
             if os.path.isabs(path):

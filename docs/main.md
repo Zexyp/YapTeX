@@ -45,6 +45,7 @@ Similarly, variables and macros can be escaped.
 #endregion
 
 #include "variables.md"
+#include "rargs.md"
 #endregion
 
 #include "installation.md"

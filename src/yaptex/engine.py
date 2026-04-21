@@ -25,6 +25,13 @@ PER_LINE_VERBOSITY = False
 _variable_pattern = rf'{REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
 _macro_pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
 
+class Metadata:
+    def __init__():
+        self.title: str = None
+        self.author: dict[str, str] = None
+        self.keywords: dict[str, str] = None
+        self.params: dict[str, str] = None
+
 class BuildEngine:
     """main machinery"""
     def __init__(self) -> None:
@@ -56,6 +63,8 @@ class BuildEngine:
 
             LineDirective(),
             EmbedDirective(),
+
+            QrDirective(),
         ]
         self.directives_map: OrderedDict[str, Directive] = None
         def build_directives_map():
@@ -105,7 +114,9 @@ class BuildEngine:
             "l": str.lower,
             "u": str.upper,
             "t": str.title,
+            # TODO: padr, padl
         }
+        self.metadata: Metadata = None
 
     def configure(self, pedantic: bool = None):
         """sigh"""

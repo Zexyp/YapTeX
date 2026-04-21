@@ -65,7 +65,7 @@ def _render(raw_file, args):
     if rargs:
         log_debug(f"rargs:\n{'\n'.join([f'  {k}={v}' for k, v in rargs.items()])}")
 
-    def render_dependencies(renderer: Renderer, file: str):
+    def render_dependencies(renderer: Renderer, file: str) -> str:
         """recursion"""
 
         if renderer.depends_on:
@@ -78,7 +78,8 @@ def _render(raw_file, args):
 
     renderer = renderer_types[args.target]()
 
-    render_dependencies(renderer, raw_file)
+    outfile = render_dependencies(renderer, raw_file)
+    log_info(f"output: '{outfile}'")
 
 def _build(args):
     """no comment"""

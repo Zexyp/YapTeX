@@ -31,7 +31,7 @@ class PdfRenderer(Renderer):
 
             def link_callback(uri, basepath):
                 if uri.startswith("data:"):
-                    raise NotImplementedError
+                    return uri
                 if os.path.isabs(uri):
                     raise NotImplementedError
 
@@ -56,4 +56,4 @@ class PdfRenderer(Renderer):
         if pisa_status.err:
             raise RenderingError("pisa error")
 
-        return pdf_file
+        return pdf_filepath
