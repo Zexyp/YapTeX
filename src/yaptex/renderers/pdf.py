@@ -11,7 +11,10 @@ from ..log import log_debug
 from . import Renderer
 from .html import HtmlRenderer, HTML_ENCODING
 
+# TODO: converting parser, name is treated as id attribute
+
 # ! monkey patch !
+# TODO: add patch for macos
 if platform.system() == "Windows":
     log_debug("monkey patching")
     from xhtml2pdf.files import pisaFileObject

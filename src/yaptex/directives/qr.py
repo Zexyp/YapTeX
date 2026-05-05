@@ -69,6 +69,8 @@ class QrDirective(ArgDirective):
         parser.add_argument("--x-constant", metavar="SYMBOL", action=self.AccountAction, required=False)
 
         def func(args):
+            # there are two modes of operation
+            # either the raw data is provided or banking mode
             if (args.data is None) == (args.account is None):
                 parser.error("provide either <data> or --account")
             

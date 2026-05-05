@@ -142,7 +142,7 @@ class BuildEngine:
         self.path_dir_source = os.path.dirname(source_file) if os.path.isfile(source_file) else os.getcwd()
         self.path_dir_output = output_dir
 
-        out_file = os.path.join(self.path_dir_output, "index.md")
+        out_file = os.path.join(self.path_dir_output, "index")
 
         with open(out_file, mode='w', encoding="utf8") as file:
             try:
