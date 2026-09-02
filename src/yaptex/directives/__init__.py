@@ -7,6 +7,8 @@ import shlex
 
 from ..utils import REGEX_NUMBER_INT, REGEX_GROUP_QUOTED
 
+# TODO: decide if feed raw or with variables emplaced
+
 class Directive(ABC):
     """mechanism to declare logic of directives"""
 
@@ -23,7 +25,7 @@ class Directive(ABC):
         """logic goes here"""
 
 class ArgDirective(Directive, ABC):
-    """NotImplemented"""
+    """handle directive using argparse"""
 
     # arg regex (\s+(.+))?
     def __init__(self):
@@ -33,6 +35,7 @@ class ArgDirective(Directive, ABC):
     
     def handle(self, line: str, engine: 'BuildEngine'):
         line = line.split(" ", maxsplit=1)[-1]
+        line = engine.handle_variables(line, engine.variables)
         line_args = shlex.split(line)
         
         try:
