@@ -10,26 +10,40 @@ import sys
 import os
 import re
 
-#import yaml
+import yaml
 
 from . import utils
-from .utils import str_escape, REGEX_ESCAPE_CHAR, PAGE_HEADER_SEPARATOR, REGEX_VARIABLE_CHAR, VARIABLE_FORMAT_SEPARATOR, VARIABLE_CHAR, REGEX_MACRO_CHAR, MACRO_CHAR, ESCAPE_CHAR, DIRECTIVE_CHAR, REGEX_IDENTIFIER, MACRO_ARG_SEPARATOR
+from .utils import str_escape, REGEX_ESCAPE_CHAR, FRONTMATTER_SEPARATOR, REGEX_VARIABLE_CHAR, VARIABLE_FORMAT_SEPARATOR, VARIABLE_CHAR, REGEX_MACRO_CHAR, MACRO_CHAR, ESCAPE_CHAR, DIRECTIVE_CHAR, REGEX_IDENTIFIER, MACRO_ARG_SEPARATOR
 from .log import log_debug, log_warning, log_error, log_directive, log_info
 from .structures import Macro
 from .errors import YapTeXError, BuildError, BuildFileNotFoundError, MalformedError
 from .directives import *
-from . import expressions
+from .renderers import Renderer
+
+# cfg order: file, cmd
 
 PER_LINE_VERBOSITY = False
+OUTPUT_FILENAME = "index.txt"
 
 _variable_pattern = rf'{REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
 _macro_pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
 
 class Metadata:
-    def __init__():
+    def __init__(self):
         self.title: str = None
-        self.author: dict[str, str] = None
-        self.keywords: dict[str, str] = None
+        self.subtitle: str = None
+        #self.status: str = None
+        self.description: str = None
+        self.template: str = None
+        #self.icon: str = None
+        self.author: dict[str, str] = None # /s
+        self.date: datetime = None # created, updated
+        self.renderer: Renderer = None
+
+        self.tags: list[str] = None
+        self.keywords: list[str] = None
+        self.categories: list[str] = None
+
         self.params: dict[str, str] = None
 
 class BuildEngine:
@@ -114,8 +128,9 @@ class BuildEngine:
             "l": str.lower,
             "u": str.upper,
             "t": str.title,
-            # TODO: padr, padl
+            # TODO: padr, padl, padc, -
         }
+
         self.metadata: Metadata = None
 
     def configure(self, pedantic: bool = None):
@@ -142,7 +157,7 @@ class BuildEngine:
         self.path_dir_source = os.path.dirname(source_file) if os.path.isfile(source_file) else os.getcwd()
         self.path_dir_output = output_dir
 
-        out_file = os.path.join(self.path_dir_output, "index")
+        out_file = os.path.join(self.path_dir_output, OUTPUT_FILENAME)
 
         with open(out_file, mode='w', encoding="utf8") as file:
             try:
@@ -169,9 +184,9 @@ class BuildEngine:
         # pedantic
         if re.match(r'^#+ ', line):
             self.pedantic_log_file("detected fixed header")
-
-        if line.startswith(DIRECTIVE_CHAR):
+        elif line.startswith(DIRECTIVE_CHAR):
             return self.handle_directive(line)
+        
         # directive char escaping
         if line.startswith(f"{ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
             line = line.removeprefix(ESCAPE_CHAR)
@@ -203,9 +218,8 @@ class BuildEngine:
             directive = self.directives_map[directive_key]
             directive.handle(line.removeprefix(DIRECTIVE_CHAR), self)
             return ""
-
-        # possible header, only if regions are not used
-        if not line.startswith(f"{DIRECTIVE_CHAR} "):
+        
+        else:
             self.pedantic_log_file("unreadable directive")
 
         return line
@@ -231,18 +245,17 @@ class BuildEngine:
             if first_line:
                 first_line = False
 
-                if line.startswith(PAGE_HEADER_SEPARATOR):
+                if line.startswith(FRONTMATTER_SEPARATOR):
                     self.log_debug("page header started")
                     reading_page_header = True
                     continue # skip this line
 
             # header eating
             if reading_page_header == True:
-                if line.startswith(PAGE_HEADER_SEPARATOR):
+                if line.startswith(FRONTMATTER_SEPARATOR):
                     reading_page_header = False
                     self.log_debug("parsing page header")
-                    #print(yaml.safe_load(page_header_string))
-                    raise NotImplementedError
+                    self.handle_frontmatter(page_header_string)
                     continue # skip this line
                 page_header_string += line # eat
                 continue
@@ -286,6 +299,7 @@ class BuildEngine:
         """\"nom nom\", *consumes line cutely*"""
         initial_sections_count = len(self.sectionstack)
         self.current_file_line_number = 0
+        # TODO: multiline fetch
         while line := self.input.readline():
             self.current_file_line_number += 1
             self.log_line("reading: " + repr(line))
@@ -414,7 +428,14 @@ class BuildEngine:
 
         return result
 
-    # assets
+    def handle_frontmatter(self, page_header: str):
+        yaml_data = yaml.safe_load(page_header)
+        self.metadata = Metadata()
+        self.metadata.title = yaml_data.get("title")
+        self.metadata.author = yaml_data.get("author")
+        raise NotImplementedError
+
+    # asserts
 
     def assert_match(self, m):
         """custom assert thingy"""

@@ -1,0 +1,28 @@
+/* YapTeX generated */
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-weight: normal;
+    font-style: normal;
+    src: url(JetBrainsMono-Regular.ttf);
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-weight: normal;
+    font-style: italic;
+    src: url(JetBrainsMono-Italic.ttf);
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-weight: bold;
+    font-style: normal;
+    src: url(JetBrainsMono-Bold.ttf);
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-weight: bold;
+    font-style: italic;
+    src: url(JetBrainsMono-BoldItalic.ttf);
+}

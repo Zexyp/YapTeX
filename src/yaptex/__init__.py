@@ -4,6 +4,9 @@ import os
 PATH_DIR_RESOURCE = os.path.join(os.path.dirname(__file__), "res")
 assert os.path.isdir(PATH_DIR_RESOURCE), "resources dir missing"
 
+# TODO: string formatter aliases
+# TODO: filter pipint (step1|step2)
+
 # la glue code
 from .renderers import *
 

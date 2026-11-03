@@ -87,10 +87,10 @@ class QrDirective(ArgDirective):
             img = qr.make_image(fill_color="black", back_color="white")
 
             # save to buffer
-            buffer = io.BytesIO()
-            img.save(buffer, format="PNG")
-            buffer.seek(0)
-            b64data = base64.b64encode(buffer.read()).decode("utf-8")
+            with io.BytesIO() as buffer:
+                img.save(buffer, format="PNG")
+                buffer.seek(0)
+                b64data = base64.b64encode(buffer.read()).decode("utf-8")
 
             # craft attribs
             attributes = []

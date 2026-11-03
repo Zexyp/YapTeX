@@ -161,11 +161,11 @@ def build_font_parser():
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers()
-    parser_font_pull = subparsers.add_parser("pull")
-    parser_font_pull.add_argument("family", help="font family name")
-    parser_font_pull.set_defaults(func=lambda args: fonts.download(args.family))
-    parser_font_list = subparsers.add_parser("list", aliases=["ls"])
-    parser_font_list.set_defaults(func=lambda args: print("\n".join(fonts.installed())))
+    parser_pull = subparsers.add_parser("pull")
+    parser_pull.add_argument("family", help="font family name")
+    parser_pull.set_defaults(func=lambda args: fonts.download(args.family))
+    parser_pull = subparsers.add_parser("list", aliases=["ls"])
+    parser_pull.set_defaults(func=lambda args: print("\n".join(fonts.installed())))
 
     return parser
 
@@ -175,5 +175,7 @@ def font():
 
     args = parser.parse_args()
 
-    if args.func:
+    if hasattr(args, "func") and args.func:
         args.func(args)
+    else:
+        parser.print_usage()

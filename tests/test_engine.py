@@ -9,6 +9,10 @@ from yaptex.errors import YapTeXError, BuildError
 from . import RESOURCE_DIR
 
 def _cmp_files(expected, actual):
+    # test the test
+    assert os.path.isfile(expected), "wtf"
+    assert os.path.isfile(actual), "wtf"
+    
     with open(expected, "r") as f:
         expected_lines = f.readlines()
     with open(actual, "r") as f:
@@ -28,7 +32,7 @@ class TestEngine(unittest.TestCase):
 
     def test_file(self):
         source = os.path.join(RESOURCE_DIR, "source/file.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source_file=source, output_dir=self.temp_dir.name)
 
@@ -37,7 +41,7 @@ class TestEngine(unittest.TestCase):
     def test_include(self):
         source = os.path.join(RESOURCE_DIR, "source/include/include.md")
         ref = os.path.join(RESOURCE_DIR, "expected/include.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name)
 
@@ -46,7 +50,7 @@ class TestEngine(unittest.TestCase):
     def test_line(self):
         source = os.path.join(RESOURCE_DIR, "source/line.md")
         ref = os.path.join(RESOURCE_DIR, "expected/line.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name)
 
@@ -55,7 +59,7 @@ class TestEngine(unittest.TestCase):
     def test_ifs(self):
         source = os.path.join(RESOURCE_DIR, "source/ifs.md")
         ref = os.path.join(RESOURCE_DIR, "expected/ifs/none.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name)
 
@@ -64,7 +68,7 @@ class TestEngine(unittest.TestCase):
     def test_ifs_primary(self):
         source = os.path.join(RESOURCE_DIR, "source/ifs.md")
         ref = os.path.join(RESOURCE_DIR, "expected/ifs/primary.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name, defines=["def_primary"])
 
@@ -73,7 +77,7 @@ class TestEngine(unittest.TestCase):
     def test_ifs_secondary(self):
         source = os.path.join(RESOURCE_DIR, "source/ifs.md")
         ref = os.path.join(RESOURCE_DIR, "expected/ifs/secondary.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name, defines=["def_secondary"])
 
@@ -82,7 +86,7 @@ class TestEngine(unittest.TestCase):
     def test_ifs_both(self):
         source = os.path.join(RESOURCE_DIR, "source/ifs.md")
         ref = os.path.join(RESOURCE_DIR, "expected/ifs/both.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name, defines=["def_primary", "def_secondary"])
 
@@ -91,7 +95,7 @@ class TestEngine(unittest.TestCase):
     def test_heading(self):
         source = os.path.join(RESOURCE_DIR, "source/heading.md")
         ref = os.path.join(RESOURCE_DIR, "expected/heading.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name)
 
@@ -100,7 +104,7 @@ class TestEngine(unittest.TestCase):
     def test_variables(self):
         source = os.path.join(RESOURCE_DIR, "source/variables.md")
         ref = os.path.join(RESOURCE_DIR, "expected/variables.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name)
 
@@ -109,7 +113,7 @@ class TestEngine(unittest.TestCase):
     def test_macros(self):
         source = os.path.join(RESOURCE_DIR, "source/macros.md")
         ref = os.path.join(RESOURCE_DIR, "expected/macros.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name)
 
@@ -117,7 +121,7 @@ class TestEngine(unittest.TestCase):
     
     def test_include_cyclic(self):
         source = os.path.join(RESOURCE_DIR, "source/include/cyclic.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         try:
             self.engine.build(source, output_dir=self.temp_dir.name)
@@ -129,27 +133,36 @@ class TestEngine(unittest.TestCase):
     
     def test_unended_if(self):
         source = os.path.join(RESOURCE_DIR, "source/bad_if.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.assertRaises(BuildError, lambda: self.engine.build(source, output_dir=self.temp_dir.name))
 
     def test_multiple_else(self):
         source = os.path.join(RESOURCE_DIR, "source/bad_else.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.assertRaises(BuildError, lambda: self.engine.build(source, output_dir=self.temp_dir.name))
     
     def test_undefined_macro(self):
         source = os.path.join(RESOURCE_DIR, "source/bad_macro.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.assertRaises(BuildError, lambda: self.engine.build(source, output_dir=self.temp_dir.name))
     
     def test_undef(self):
         source = os.path.join(RESOURCE_DIR, "source/undef.md")
         ref = os.path.join(RESOURCE_DIR, "expected/undef.md")
-        output = os.path.join(self.temp_dir.name, "index.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name)
 
+        _cmp_files(ref, output)
+    
+    def test_yaml(self):
+        source = os.path.join(RESOURCE_DIR, "source/yml_headers/basic.md")
+        output = os.path.join(self.temp_dir.name, "index.txt")
+
+        self.engine.build(source, output_dir=self.temp_dir.name)
+
+        assert False, "not implemented"
         _cmp_files(ref, output)

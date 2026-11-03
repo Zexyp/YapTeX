@@ -10,11 +10,10 @@ from html.parser import HTMLParser
 
 from . import Renderer
 from .. import utils
-from ..log import log_debug
 
 _ASSETS_DIR = "assets"
 
-class GitHubMdConvertingParser(HTMLParser):
+class _GitHubMdConvertingParser(HTMLParser):
     def __init__(self, out_file, extract_dir, relative_to):
         super().__init__()
         self.out = out_file
@@ -42,7 +41,7 @@ class GitHubMdConvertingParser(HTMLParser):
             path = os.path.join(self.extract_dir, f"{basename}{i}{ext}")
             i += 1
 
-        log_debug(f"writing '{path}'")
+        self.log_debug(f"writing '{path}'")
         with open(path, "wb") as f:
             f.write(raw)
         
@@ -67,6 +66,7 @@ class GitHubMdConvertingParser(HTMLParser):
                 for k, v in attrs
             ]
 
+        # TODO: not safe
         attr_str = " ".join(f'{k}="{v}"' for k, v in attrs)
         self.out.write(f"<{tag}{(' ' + attr_str) if attr_str else ''}>")
 
@@ -117,7 +117,7 @@ class MdRenderer(Renderer):
         # https://github.github.com/gfm/
         # https://docs.gitlab.com/user/markdown/
         flavor = rargs.get("flavor") or rargs.get("dialect") or "none"
-        log_debug(f"flavor: {flavor}")
+        self.log_debug(f"flavor: {flavor}")
 
         dest = os.path.join(output_dir, "index.md")
         # FIXME
@@ -135,7 +135,7 @@ class MdRenderer(Renderer):
                 shutil.copy(file, dest)
             case "gh" | "github":
                 with open(file, mode="r") as fin, open(dest, mode="w") as fout:
-                    parser = GitHubMdConvertingParser(fout,
+                    parser = _GitHubMdConvertingParser(fout,
                                                       extract_dir=os.path.join(output_dir, _ASSETS_DIR),
                                                       relative_to=output_dir)
                     

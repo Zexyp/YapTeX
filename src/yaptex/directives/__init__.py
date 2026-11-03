@@ -81,7 +81,7 @@ class PageBreakDirective(Directive):
 
     def handle(self, line, engine):
         # sketchy
-        engine.feed_raw('<div style="page-break-before: always;"></div>\n') #<pdf:nextpage/>
+        engine.feed_raw('<div style="break-after: always; page-break-after: always;"></div>\n') #<pdf:nextpage/>
 
 
 class LineDirective(Directive):

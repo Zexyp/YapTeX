@@ -2,16 +2,18 @@
 
 import os
 import shutil
+import re
 
 import pygments
 from pygments.lexers import get_lexer_by_name, get_lexer_for_filename
 from pygments.formatters import HtmlFormatter
 from markdown_it import MarkdownIt
+from mdit_py_plugins.footnote import footnote_plugin
 
-from ..log import log_debug, log_warning
 from . import Renderer
 from .. import PATH_DIR_RESOURCE
 from .. import fonts
+from ..utils import is_file_of_dir
 
 HTML_ENCODING = "utf8"
 
@@ -29,7 +31,7 @@ class HtmlRenderer(Renderer):
         styleshim = None
         def highlight(content, lang, attrs) -> str:
             if not lang:
-                log_debug("empty lang")
+                self.log_debug("empty lang")
                 return None
 
             nonlocal styleshim
@@ -40,7 +42,7 @@ class HtmlRenderer(Renderer):
                 try:
                     lexer = get_lexer_for_filename(f"*.{lang}")
                 except pygments.util.ClassNotFound:
-                    log_warning(f"lexer for '{lang}' not found")
+                    self.log_warning(f"lexer for '{lang}' not found")
                     return None
             # https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html
             #["default", "bw", "sas", "staroffice", "xcode", "monokai", "lightbulb", "github-dark", "rrt"]
@@ -51,20 +53,24 @@ class HtmlRenderer(Renderer):
             if not styleshim:
                 styleshim = formatter.get_style_defs(".highlight")
 
-            return pygments.highlight(content, lexer, formatter)
+            return pygments.highlight(content, lexer, formatter).strip()
 
         md = MarkdownIt("commonmark", {"linkify": True})
 
+        md.use(footnote_plugin)
         md.enable(["linkify", "table"])
         md.options.highlight = highlight
+        
         with open(file, mode='r', encoding="utf8") as source:
             content = md.render(source.read())
 
         html_file = os.path.join(output_dir, "index.html")
 
         font_family = rargs.get("font_family", "Bitter")
+        font_family_mono = rargs.get("font_family_mono", "JetBrains Mono")
         # by default xhtml2pdf is useless because it can't even render some basic characters
         shutil.copytree(os.path.join(PATH_DIR_RESOURCE, "font", font_family), os.path.join(output_dir, "font", font_family), dirs_exist_ok=True)
+        shutil.copytree(os.path.join(PATH_DIR_RESOURCE, "font", font_family_mono), os.path.join(output_dir, "font", font_family_mono), dirs_exist_ok=True)
 
         content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -73,9 +79,22 @@ class HtmlRenderer(Renderer):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document \\(o_o)/</title>
     <link rel="stylesheet" href="font/{font_family}/style.css">
+    <link rel="stylesheet" href="font/{font_family_mono}/style.css">
     <style>
     body {{
-        font-family: {font_family};
+        font-family: \"{font_family}\";
+        font-size: 12pt;
+    }}
+    pre, code {{
+        font-family: \"{font_family_mono}\";
+    }}
+    h1, h2, h3, h4, h5, h6 {{
+        break-after: avoid;
+        page-break-after: avoid;
+        -pdf-keep-with-next: true; /* xhtml2pdf is dumb */
+    }}
+    figure, pre code {{
+        -pdf-keep-with-next: true; /* xhtml2pdf is extra dumb */
     }}
 {styleshim if styleshim else ""}
     </style>
@@ -100,23 +119,23 @@ class HtmlRenderer(Renderer):
         # this is keep relative strategy
         for path in referenced_paths:
             if path.startswith("data"):
-                log_debug(f"skip data")
+                self.log_debug(f"skip data")
                 continue
 
-            log_debug(f"referenced path '{path}'")
+            self.log_debug(f"referenced path '{path}'")
 
             if os.path.isabs(path):
-                log_warning(f"suppressed absolute path! ('{path}')")
+                self.log_warning(f"suppressed absolute path! ('{path}')")
                 continue
 
             ref_rel_path = os.path.join(os.path.dirname(file), path)
             if not os.path.isfile(ref_rel_path):
-                log_warning(f"file not found! ('{ref_rel_path}')")
+                self.log_warning(f"file not found! ('{ref_rel_path}')")
                 continue
 
             dest = os.path.join(output_dir, path)
             if not os.path.abspath(dest).startswith(os.path.abspath(output_dir)):
-                log_warning(f"illegal path! ('{path}')")
+                self.log_warning(f"illegal path! ('{path}')")
                 continue
 
             os.makedirs(os.path.dirname(dest), exist_ok=True)
