@@ -10,7 +10,7 @@ from xhtml2pdf.tags import pisaTagPDFTOC
 
 from ..errors import RenderingError
 from ..log import log_debug
-from . import Renderer
+from . import Renderer, RendererConfig
 from .html import HtmlRenderer, HTML_ENCODING
 
 # TODO: converting parser, name is treated as id attribute
@@ -43,6 +43,10 @@ class _AncorAddingParser(HTMLParser):
 
 class PdfRenderer(Renderer):
     """renderer for pdf"""
+
+    @staticmethod
+    def parse_config(data) -> RendererConfig:
+        raise NotImplementedError
 
     identifier = "pdf"
     depends_on = HtmlRenderer

@@ -17,7 +17,7 @@ def add_renderer_type(rend: type[Renderer]):
     assert rend.identifier not in renderer_types
     renderer_types[rend.identifier] = rend
 
-# quite messy hack
-if "MdRenderer" in locals(): add_renderer_type(MdRenderer)
-if "HtmlRenderer" in locals(): add_renderer_type(HtmlRenderer)
-if "PdfRenderer" in locals(): add_renderer_type(PdfRenderer)
+# quite messy
+if MdRenderer: add_renderer_type(MdRenderer)
+if HtmlRenderer: add_renderer_type(HtmlRenderer)
+if PdfRenderer: add_renderer_type(PdfRenderer)

@@ -10,7 +10,7 @@ from pygments.formatters import HtmlFormatter
 from markdown_it import MarkdownIt
 from mdit_py_plugins.footnote import footnote_plugin
 
-from . import Renderer
+from . import Renderer, RendererConfig
 from .. import PATH_DIR_RESOURCE
 from .. import fonts
 from ..utils import is_file_of_dir
@@ -23,6 +23,10 @@ class HtmlRenderer(Renderer):
     """renderer for html"""
 
     identifier = "html"
+
+    @staticmethod
+    def parse_config(data) -> RendererConfig:
+        raise NotImplementedError
 
     # html does not need post processing
     def render(self, file: str, output_dir: str, rargs: dict[str, str] = {}):

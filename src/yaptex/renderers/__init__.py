@@ -17,9 +17,15 @@ class Renderer(ABC):
     depends_on = None
     identifier = None
 
+    @staticmethod
+    @abstractmethod
+    def parse_config(data) -> RendererConfig:
+        pass
+
     @abstractmethod
     def render(self, file: str, output_dir: str, rargs: dict[str, str]):
         """render stuff"""
+        pass
 
     def log_debug(self, msg: str):
         """engine log"""
@@ -41,11 +47,14 @@ try:
     from .md import MdRenderer
 except ImportError as e:
     log_error(f"failed to import renderer: {e}")
+    MdRenderer = None
 try:
     from .html import HtmlRenderer
 except ImportError as e:
     log_error(f"failed to import renderer: {e}")
+    HtmlRenderer = None
 try:
     from .pdf import PdfRenderer
 except ImportError as e:
     log_error(f"failed to import renderer: {e}")
+    PdfRenderer = None

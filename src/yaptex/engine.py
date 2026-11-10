@@ -9,18 +9,20 @@ import html
 import sys
 import os
 import re
+from dataclasses import dataclass
 
 import yaml
 
-from . import utils
+from . import utils, renderer_types
 from .utils import str_escape, REGEX_ESCAPE_CHAR, FRONTMATTER_SEPARATOR, REGEX_VARIABLE_CHAR, VARIABLE_FORMAT_SEPARATOR, VARIABLE_CHAR, REGEX_MACRO_CHAR, MACRO_CHAR, ESCAPE_CHAR, DIRECTIVE_CHAR, REGEX_IDENTIFIER, MACRO_ARG_SEPARATOR
 from .log import log_debug, log_warning, log_error, log_directive, log_info
 from .structures import Macro
 from .errors import YapTeXError, BuildError, BuildFileNotFoundError, MalformedError
 from .directives import *
-from .renderers import Renderer
+from .renderers import Renderer, RendererConfig
 
 # cfg order: file, cmd
+# TODO: warn on skip when opening heading levels
 
 PER_LINE_VERBOSITY = False
 OUTPUT_FILENAME = "index.txt"
@@ -28,23 +30,23 @@ OUTPUT_FILENAME = "index.txt"
 _variable_pattern = rf'{REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
 _macro_pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
 
+@dataclass
 class Metadata:
-    def __init__(self):
-        self.title: str = None
-        self.subtitle: str = None
-        #self.status: str = None
-        self.description: str = None
-        self.template: str = None
-        #self.icon: str = None
-        self.author: dict[str, str] = None # /s
-        self.date: datetime = None # created, updated
-        self.renderer: Renderer = None
+    title: str = None
+    subtitle: str = None
+    #status: str = None
+    description: str = None
+    template: str = None
+    #icon: str = None
+    author: dict[str, str] = None # /s
+    date: datetime = None # created, updated
+    output: RendererConfig = None
 
-        self.tags: list[str] = None
-        self.keywords: list[str] = None
-        self.categories: list[str] = None
+    tags: list[str] = None
+    keywords: list[str] = None
+    categories: list[str] = None
 
-        self.params: dict[str, str] = None
+    params: dict[str, str] = None
 
 class BuildEngine:
     """main machinery"""
@@ -54,6 +56,7 @@ class BuildEngine:
         self.path_dir_resource: str = os.path.join(os.path.dirname(__file__), "res")
 
         self.directives: list[Directive] = [
+            PragmaDirective(),
             IncludeDirective(),
 
             RegionDirective(),
@@ -94,7 +97,6 @@ class BuildEngine:
 
         self.filestack: list[str] = []
         self.sectionstack: list[str] = []
-        self.section_counters: list[int] = [1]
         self.macros: dict[str, Macro] = {
             "sizeof": Macro(params=[None], body=None, action=lambda args, engine: str(len(args[0]))),
             #"calc": Macro(params=[None], body=None, action=lambda args, engine: raise NotImplementedError),
@@ -132,6 +134,8 @@ class BuildEngine:
         }
 
         self.metadata: Metadata = None
+        self.variable_ignore: list[str] = []
+        self.heading_counters: list[int] = [None] * 6
 
     def configure(self, pedantic: bool = None):
         """sigh"""
@@ -174,7 +178,7 @@ class BuildEngine:
         return out_file
 
     # handle all stuff on line
-    def process_line(self, line):
+    def process_line(self, line) -> str:
         """just processes a line"""
 
         assert line is not None
@@ -202,6 +206,25 @@ class BuildEngine:
         # dynheader escaping
         if re.match(rf'^{REGEX_ESCAPE_CHAR}-(#+) ', line):
             line = line.removeprefix(ESCAPE_CHAR)
+
+        # header correction
+        if m := re.match(r'^(#+)\s(.*)', line):
+            level = len(m.group(1))
+            heading = m.group(2)
+            assert level <= 6, "too deep"
+
+            # zero out subs
+            for i, e in list(enumerate(self.heading_counters))[level:]:
+                if e is not None:
+                    self.heading_counters[i] = 0
+
+            if self.heading_counters[level-1] is not None:
+                self.heading_counters[level-1] += 1
+            
+            if self.heading_counters[level-1] is not None:
+                numbers = ".".join([str(n) for n in self.heading_counters[:level] if n is not None])
+                if numbers:
+                    line = "#" * level + f" {numbers}&nbsp;&nbsp;&nbsp;<strong>{heading}</strong>\n"
 
         return line
 
@@ -273,6 +296,8 @@ class BuildEngine:
 
         self.log_info(f"processing '{filepath}'")
 
+        initial_sections_count = len(self.sectionstack)
+
         if filepath == "-":
             sys.stdin.reconfigure(encoding='utf8')
             stream = sys.stdin
@@ -294,19 +319,19 @@ class BuildEngine:
             self.current_file_line_number = last_line
             self.filestack.pop()
 
+        if len(self.sectionstack) != initial_sections_count:
+            self.log_warning(f"unended sections: {", ".join(f"'{s}'" for s in self.sectionstack)}")
+
     # reads a line from current file
     def consume(self) -> Generator[str, None, None]:
         """\"nom nom\", *consumes line cutely*"""
-        initial_sections_count = len(self.sectionstack)
+        
         self.current_file_line_number = 0
         # TODO: multiline fetch
         while line := self.input.readline():
             self.current_file_line_number += 1
             self.log_line("reading: " + repr(line))
             yield line
-        else:
-            if len(self.sectionstack) != initial_sections_count:
-                self.log_warning(f"unended sections: {", ".join(f"'{s}'" for s in self.sectionstack)} (ignore this if in macro)")
 
         self.current_file_line_number = None
         return None
@@ -339,13 +364,18 @@ class BuildEngine:
 
         def place_variable(match):
             variable_name = match.group(2) or match.group(3)
+
+            # ignore case
+            if variable_name in self.variable_ignore:
+                self.log_debug("variable '{variable_name}' ignored")
+                return match.group()
+            
             modifier = match.group(4)
 
             self.log_debug(f"handle variable '{variable_name}'{f" (format: {modifier})" if modifier else ""}")
 
             if variable_name not in vrbls:
-                self.log_debug(f"variable '{variable_name}' is not defined")
-                return match.group()
+                raise BuildError(f"variable '{variable_name}' is not defined")
 
             value = vrbls[variable_name]
             if callable(value):
@@ -364,9 +394,6 @@ class BuildEngine:
         
         # escaping variable
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({_variable_pattern})', r'\1', result)
-
-        if VARIABLE_CHAR in result:
-            self.log_file_warning("scareware: unresolved variable?")
 
         return result
 
@@ -401,10 +428,12 @@ class BuildEngine:
                         assert body is None, "unusable body"
                         body = action(args, self)
                     elif body is not None:
+                        to_pop = self.push_variable_ignore(list(self.variables.keys()))
                         body = self.handle_variables(body, dict(zip(m.params, args)))
+                        self.pop_variable_ignore(to_pop)
                     else:
                         assert False, "useless macro"
-                    
+
                 processed = ""
                 for body_line in body.splitlines(keepends=True):
                     processed += self.process_line(body_line)
@@ -412,7 +441,7 @@ class BuildEngine:
                 return processed
                 
             except:
-                self.log_file_warning(f"during '{macro_name}' macro expansion an error occurred")
+                self.log_file_error(f"during '{macro_name}' macro expansion an error occurred")
                 raise
 
         # TODO: kwargs
@@ -423,9 +452,6 @@ class BuildEngine:
         # escaping macros
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({_macro_pattern})', r'\1', result)
 
-        if MACRO_CHAR in result:
-            self.log_file_warning(f"scareware: unresolved macro?")
-
         return result
 
     def handle_frontmatter(self, page_header: str):
@@ -433,7 +459,22 @@ class BuildEngine:
         self.metadata = Metadata()
         self.metadata.title = yaml_data.get("title")
         self.metadata.author = yaml_data.get("author")
-        raise NotImplementedError
+        if "output" in yaml_data:
+            assert len(yaml_data["output"]) == 1
+            key = list(yaml_data["output"].keys())[0]
+            assert key.endswith("_document")
+            rtype = renderer_types[key.removesuffix("_document")]
+            self.metadata.output = rtype.parse_config(yaml_data["output"][key])
+
+    # TODO: retarded
+    def push_variable_ignore(self, ignore: list[str]) -> int:
+        self.variable_ignore.extend(ignore)
+        return len(ignore)
+
+    def pop_variable_ignore(self, count: int) -> list[str]:
+        result = self.variable_ignore[-count:]
+        self.variable_ignore = self.variable_ignore[:-count]
+        return result
 
     # asserts
 

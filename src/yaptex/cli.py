@@ -4,11 +4,13 @@ import argparse
 import sys
 import os
 from importlib.metadata import version
+import dataclasses
+from pprint import pprint
 
 from . import renderer_types
-from .engine import BuildEngine
+from .engine import BuildEngine, Metadata
 from .log import log_info, log_print, log_error, log_debug, color_activate, color_deactivate
-from .renderers import Renderer
+from .renderers import Renderer, RendererConfig
 from . import fonts
 from . import PATH_DIR_RESOURCE
 
@@ -32,6 +34,8 @@ def build_parser():
 
     parser = argparse.ArgumentParser()
 
+    # TODO: -Wall -Wextra
+
     parser.add_argument("--version", action="version", version=f"YapTeX {version(__package__)}")
     parser.add_argument("--color", choices=["auto", "off", "force"], default="auto", help="usage of color in log")
     parser.add_argument("input", help="input file (use - for stdin as input)")
@@ -52,8 +56,12 @@ def build_parser():
 
     return parser
 
-def _render(raw_file, args):
+def _render(raw_file, args, metadata: Metadata):
     """no comment"""
+
+    RARG_IDENTIFIER_SEP = ":"
+
+    renderer = renderer_types[args.target]()
     rargs = {}
     for a in args.rargs.strip().split(";"):
         a = a.strip()
@@ -61,7 +69,13 @@ def _render(raw_file, args):
             pair = a.split("=")
             assert len(pair) == 2
             rargs[pair[0].strip()] = pair[1].strip()
-    
+
+    # fuckery
+    if metadata and metadata.output:
+        for f in dataclasses.fields(metadata.output):
+            print("stupid code running!")
+            rargs[f"{renderer.identifier}{RARG_IDENTIFIER_SEP}{f.name}"] = getattr(metadata.output, f.name)
+
     if rargs:
         log_debug(f"rargs:\n{'\n'.join([f'  {k}={v}' for k, v in rargs.items()])}")
 
@@ -73,15 +87,13 @@ def _render(raw_file, args):
         log_info(f"renderer '{renderer.identifier}'")
         render_output = os.path.join(args.output, renderer.identifier)
         os.makedirs(render_output, exist_ok=True)
-        arg_ident = f"{renderer.identifier}:"
+        arg_ident = f"{renderer.identifier}{RARG_IDENTIFIER_SEP}"
         return renderer.render(file, render_output, {k.removeprefix(arg_ident): v for k, v in rargs.items() if k.startswith(arg_ident)})
-
-    renderer = renderer_types[args.target]()
 
     outfile = render_dependencies(renderer, raw_file)
     log_info(f"output: '{outfile}'")
 
-def _build(args):
+def _build(args) -> tuple[str, Metadata]:
     """no comment"""
 
     os.makedirs(args.output, exist_ok=True)
@@ -101,7 +113,7 @@ def _build(args):
         log_error(f"{type(e).__name__}: {str(e)}")
         raise
 
-    return raw_file
+    return raw_file, builder.metadata
 
 def _colorize(mode: str):
     if "NO_COLOR" in os.environ and len(os.environ["NO_COLOR"]):
@@ -133,7 +145,7 @@ def run():
 
     log_info("building...")
     try:
-        raw_file = _build(args)
+        raw_file, metadata = _build(args)
     except:
         log_error("build failed")
 
@@ -144,7 +156,7 @@ def run():
     if args.target != "raw":
         log_info("rendering...")
         try:
-            _render(raw_file, args)
+            _render(raw_file, args, metadata)
         except:
             log_error("rendering failed")
 

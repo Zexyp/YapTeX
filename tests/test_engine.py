@@ -159,10 +159,11 @@ class TestEngine(unittest.TestCase):
         _cmp_files(ref, output)
     
     def test_yaml(self):
-        source = os.path.join(RESOURCE_DIR, "source/yml_headers/basic.md")
+        source = os.path.join(RESOURCE_DIR, "source/frontmatter/basic.md")
         output = os.path.join(self.temp_dir.name, "index.txt")
+        ref = os.path.join(RESOURCE_DIR, "expected/empty.md")
 
         self.engine.build(source, output_dir=self.temp_dir.name)
 
-        assert False, "not implemented"
+        assert self.engine.metadata.title == "t"
         _cmp_files(ref, output)
