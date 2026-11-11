@@ -111,7 +111,7 @@ class QrDirective(ArgDirective):
             if style:
                 attributes.append(f"style=\"{"; ".join(style)}\"")
                 
-            return f"<img {" ".join(attributes)}/>"
+            return f"<img {" ".join(attributes)}>"
 
         parser.set_defaults(func=func)
         return parser

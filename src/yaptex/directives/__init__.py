@@ -56,7 +56,7 @@ class ArgDirective(Directive, ABC):
 
             l = args.func(args)
             if l is not None:
-                engine.feed_raw()
+                engine.feed_raw(l)
         except argparse.ArgumentError as e:
             msg = msg.strip()
             engine.assert_that(False, msg)
@@ -115,7 +115,8 @@ class PragmaDirective(ArgDirective):
         return out_actions, out_opts
 
     def _func_hlevel(self, args: ArgDirective.BaseArgs):
-        # TODO: hlevel arabic, roman, alphabetical
+        # TODO: hlevel arabic, roman, greek, alphabetical
+        # TODO: custom format
         pattern = rf'^count\s*\((.*)\)'
         rest = " ".join(args.rest)
         m = re.match(pattern, rest)
@@ -157,7 +158,15 @@ class PragmaDirective(ArgDirective):
         
 
     def _func_nest(self, args: ArgDirective.BaseArgs):
-        raise NotImplementedError
+        args.engine.heading_offset += 1
+
+    def _func_once(self, args: ArgDirective.BaseArgs):
+        if args.engine.current_filegit in args.engine.fileset:
+            # depleet current stream
+            for l in args.engine.consume():
+                pass
+            else:
+                args.engine.log_debug(f"file '{args.engine.current_file}' consumed (skipped)")
 
     def build_parser(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser("pragma", add_help=False, usage=argparse.SUPPRESS)
@@ -167,6 +176,8 @@ class PragmaDirective(ArgDirective):
         parsesr_hlevel.set_defaults(func=self._func_hlevel, parser=parsesr_hlevel)
         parsesr_nest = subparsers.add_parser("nest")
         parsesr_nest.set_defaults(func=self._func_nest, parser=parsesr_nest)
+        parsesr_nest = subparsers.add_parser("once")
+        parsesr_nest.set_defaults(func=self._func_once, parser=parsesr_nest)
         parser.set_defaults(parser=parser)
         return parser
 

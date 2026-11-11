@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 
 from markdown_it import MarkdownIt
 
-from . import Renderer, RendererConfig
+from . import Renderer, RendererConfig, _WritingParser
 from .. import utils
 from ..log import log_debug
 
@@ -24,32 +24,6 @@ _ASSETS_DIR = "assets"
 @dataclass
 class MdRendererConfig(RendererConfig):
     flavor: str = None
-
-
-class _WritingParser(ABC, HTMLParser):
-    def __init__(self, output: io.TextIOWrapper | HTMLParser = None):
-        super().__init__()
-        self.output = output
-
-    def write(self, text: str):
-        if self.output is None:
-            return
-        match self.output:
-            case io.TextIOWrapper():
-                self.output.write(text)
-            case HTMLParser():
-                self.output.feed(text)
-
-    def handle_starttag(self, tag, attrs):
-        attr_str = " ".join(f'{k}="{html.escape(v)}"' for k, v in attrs)
-        self.write(f"<{tag}{(' ' + attr_str) if attr_str else ''}>")
-
-    def handle_endtag(self, tag):
-        self.write(f"</{tag}>")
-
-    def handle_data(self, data):
-        self.write(data)
-
 
 class _MdImageParser(_WritingParser):
     def process_image(self, url: str, alt: str, id: str) -> str:

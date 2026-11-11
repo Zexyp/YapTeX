@@ -3,14 +3,14 @@
 import os
 import platform
 import io
-from html.parser import HTMLParser
+import html
 
 from xhtml2pdf import pisa
 from xhtml2pdf.tags import pisaTagPDFTOC
 
 from ..errors import RenderingError
 from ..log import log_debug
-from . import Renderer, RendererConfig
+from . import Renderer, RendererConfig, _WritingParser
 from .html import HtmlRenderer, HTML_ENCODING
 
 # TODO: converting parser, name is treated as id attribute
@@ -22,24 +22,12 @@ if platform.system() == "Windows":
     from xhtml2pdf.files import pisaFileObject
     pisaFileObject.getNamedFile = lambda self: self.uri
 
-class _AncorAddingParser(HTMLParser):
-    def __init__(self, output):
-        super().__init__()
-        self.out = output
-
+class _AncorAddingParser(_WritingParser):
     def handle_starttag(self, tag, attrs):
         if "id" in (dattrs := dict(attrs)):
-            self.out.write(f"<a name=\"{dattrs["id"]}\"></a>")
+            self.out.write(f"<a name=\"{html.encode(dattrs["id"])}\"></a>")
 
-        # TODO: not safe
-        attr_str = " ".join(f'{k}="{v}"' for k, v in attrs)
-        self.out.write(f"<{tag}{(' ' + attr_str) if attr_str else ''}>")
-
-    def handle_endtag(self, tag):
-        self.out.write(f"</{tag}>")
-    
-    def handle_data(self, data):
-        self.out.write(data)
+        super().handle_starttag(tag, attrs)
 
 class PdfRenderer(Renderer):
     """renderer for pdf"""

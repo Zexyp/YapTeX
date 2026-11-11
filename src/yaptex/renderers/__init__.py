@@ -2,10 +2,10 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from html.parser import HTMLParser
+import io
 
 from ..log import log_error, log_debug, log_error, log_warning, log_info
-
-# TODO: add flavoring
 
 @dataclass
 class RendererConfig(ABC):
@@ -42,6 +42,30 @@ class Renderer(ABC):
     def log_warning(self, msg: str):
         """engine log"""
         log_warning(f"[{self.identifier}] {msg}")
+
+class _WritingParser(ABC, HTMLParser):
+    def __init__(self, output: io.TextIOWrapper | HTMLParser = None):
+        super().__init__()
+        self.output = output
+
+    def write(self, text: str):
+        if self.output is None:
+            return
+        match self.output:
+            case io.TextIOWrapper():
+                self.output.write(text)
+            case HTMLParser():
+                self.output.feed(text)
+
+    def handle_starttag(self, tag, attrs):
+        attr_str = " ".join(f'{k}="{html.escape(v)}"' for k, v in attrs)
+        self.write(f"<{tag}{(' ' + attr_str) if attr_str else ''}>")
+
+    def handle_endtag(self, tag):
+        self.write(f"</{tag}>")
+
+    def handle_data(self, data):
+        self.write(data)
 
 try:
     from .md import MdRenderer

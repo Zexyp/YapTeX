@@ -22,7 +22,6 @@ from .directives import *
 from .renderers import Renderer, RendererConfig
 
 # cfg order: file, cmd
-# TODO: warn on skip when opening heading levels
 
 PER_LINE_VERBOSITY = False
 OUTPUT_FILENAME = "index.txt"
@@ -47,6 +46,8 @@ class Metadata:
     categories: list[str] = None
 
     params: dict[str, str] = None
+
+    stylelist: list[str] = None
 
 class BuildEngine:
     """main machinery"""
@@ -95,6 +96,7 @@ class BuildEngine:
             self.directives_map = OrderedDict(sorted(self.directives_map.items(), key=lambda item:  item[0], reverse=True))
         build_directives_map()
 
+        self.fileset: set[str] = set()
         self.filestack: list[str] = []
         self.sectionstack: list[str] = []
         self.macros: dict[str, Macro] = {
@@ -103,13 +105,11 @@ class BuildEngine:
         }
         dtnow = datetime.now()
         self.variables: dict[str, str | Callable] = {
-            "_YEAR_": str(dtnow.year),
-            "_MONTH_": str(dtnow.month),
-            "_DAY_": str(dtnow.day),
             "__FILE__": lambda: self.current_file_alias or self.current_file,
             "__LINE__": lambda: str(self.current_file_line_number),
             "__TIME__": str(dtnow.time()),
             "__DATE__": str(dtnow.date()),
+            "__TIMESTAMP__": str(dtnow.timestamp()),
         }
 
         self.output: TextIOWrapper = None
@@ -130,12 +130,17 @@ class BuildEngine:
             "l": str.lower,
             "u": str.upper,
             "t": str.title,
-            # TODO: padr, padl, padc, -
+            # TODO: padr (>), padl(<), padc(^), -
         }
 
         self.metadata: Metadata = None
+        self.metadata.stylelist = []
+
         self.variable_ignore: list[str] = []
         self.heading_counters: list[int] = [None] * 6
+        self.heading_offset: int = 0
+
+        self.last_heading_level = 0
 
     def configure(self, pedantic: bool = None):
         """sigh"""
@@ -211,8 +216,20 @@ class BuildEngine:
         if m := re.match(r'^(#+)\s(.*)', line):
             level = len(m.group(1))
             heading = m.group(2)
+
+            # level warn
+            if level - self.last_heading_level > 1:
+                self.pedantic_log_file("heading level skipped")
+
+            self.last_heading_level = level
+
+            # offset
+            if self.heading_offset:
+                line = "#" * (level + self.heading_offset) + f" {heading}\n"
+            
             assert level <= 6, "too deep"
 
+            # counters
             # zero out subs
             for i, e in list(enumerate(self.heading_counters))[level:]:
                 if e is not None:
@@ -251,7 +268,8 @@ class BuildEngine:
     def process_stream(self, readable: TextIOWrapper):
         """works on stream"""
 
-        last_input = self.input
+        prev_input = self.input
+        prev_heading_offset = self.heading_offset
         self.input = readable
 
         first_line = True
@@ -288,7 +306,10 @@ class BuildEngine:
         if last_line is not None and not last_line.endswith("\n"):
             self.pedantic_log_file("no new line at the end of file")
 
-        self.input = last_input
+        self._stream_boundary_reset()
+
+        self.heading_offset = prev_heading_offset
+        self.input = prev_input
 
     # opens a file and processes it
     def process_file(self, filepath):
@@ -318,6 +339,7 @@ class BuildEngine:
             self.current_file = last_file
             self.current_file_line_number = last_line
             self.filestack.pop()
+            self.fileset.add(filepath)
 
         if len(self.sectionstack) != initial_sections_count:
             self.log_warning(f"unended sections: {", ".join(f"'{s}'" for s in self.sectionstack)}")
@@ -379,7 +401,7 @@ class BuildEngine:
 
             value = vrbls[variable_name]
             if callable(value):
-                self.log_debug("called variable '{variable_name}'")
+                self.log_debug("prop variable '{variable_name}'")
                 value = value()
 
             if modifier:
@@ -547,3 +569,6 @@ class BuildEngine:
     def pedantic_log_file(self, msg: str):
         """engine log"""
         self.pedantic_log(self._format_file_msg(msg))
+
+    def _stream_boundary_reset(self):
+        pass

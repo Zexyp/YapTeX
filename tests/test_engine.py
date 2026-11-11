@@ -30,6 +30,15 @@ class TestEngine(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
+    def _build_test(self, src, ref):
+        fullsrc = os.path.join(RESOURCE_DIR, src)
+        fullref = os.path.join(RESOURCE_DIR, ref)
+        output = os.path.join(self.temp_dir.name, "index.txt")
+
+        self.engine.build(fullsrc, output_dir=self.temp_dir.name)
+
+        _cmp_files(fullref, output)
+
     def test_file(self):
         source = os.path.join(RESOURCE_DIR, "source/file.md")
         output = os.path.join(self.temp_dir.name, "index.txt")
@@ -39,31 +48,19 @@ class TestEngine(unittest.TestCase):
         _cmp_files(source, output)
 
     def test_include(self):
-        source = os.path.join(RESOURCE_DIR, "source/include/include.md")
-        ref = os.path.join(RESOURCE_DIR, "expected/include.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
-
-        self.engine.build(source, output_dir=self.temp_dir.name)
-
-        _cmp_files(ref, output)
+        self._build_test(
+            "source/include/include.md",
+            "expected/include.md")
 
     def test_line(self):
-        source = os.path.join(RESOURCE_DIR, "source/line.md")
-        ref = os.path.join(RESOURCE_DIR, "expected/line.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
-
-        self.engine.build(source, output_dir=self.temp_dir.name)
-
-        _cmp_files(ref, output)
+        self._build_test(
+            "source/line.md",
+            "expected/line.md")
 
     def test_ifs(self):
-        source = os.path.join(RESOURCE_DIR, "source/ifs.md")
-        ref = os.path.join(RESOURCE_DIR, "expected/ifs/none.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
-
-        self.engine.build(source, output_dir=self.temp_dir.name)
-
-        _cmp_files(ref, output)
+        self._build_test(
+            "source/ifs.md",
+            "expected/ifs/none.md")
 
     def test_ifs_primary(self):
         source = os.path.join(RESOURCE_DIR, "source/ifs.md")
@@ -93,35 +90,22 @@ class TestEngine(unittest.TestCase):
         _cmp_files(ref, output)
 
     def test_heading(self):
-        source = os.path.join(RESOURCE_DIR, "source/heading.md")
-        ref = os.path.join(RESOURCE_DIR, "expected/heading.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
+        self._build_test(
+            "source/heading.md",
+            "expected/heading.md")
 
-        self.engine.build(source, output_dir=self.temp_dir.name)
-
-        _cmp_files(ref, output)
-    
     def test_variables(self):
-        source = os.path.join(RESOURCE_DIR, "source/variables.md")
-        ref = os.path.join(RESOURCE_DIR, "expected/variables.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
+        self._build_test(
+            "source/variables.md",
+            "expected/variables.md")
 
-        self.engine.build(source, output_dir=self.temp_dir.name)
-
-        _cmp_files(ref, output)
-    
     def test_macros(self):
-        source = os.path.join(RESOURCE_DIR, "source/macros.md")
-        ref = os.path.join(RESOURCE_DIR, "expected/macros.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
-
-        self.engine.build(source, output_dir=self.temp_dir.name)
-
-        _cmp_files(ref, output)
+        self._build_test(
+            "source/macros.md",
+            "expected/macros.md")  
     
     def test_include_cyclic(self):
         source = os.path.join(RESOURCE_DIR, "source/include/cyclic.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
 
         try:
             self.engine.build(source, output_dir=self.temp_dir.name)
@@ -133,37 +117,52 @@ class TestEngine(unittest.TestCase):
     
     def test_unended_if(self):
         source = os.path.join(RESOURCE_DIR, "source/bad_if.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.assertRaises(BuildError, lambda: self.engine.build(source, output_dir=self.temp_dir.name))
 
     def test_multiple_else(self):
         source = os.path.join(RESOURCE_DIR, "source/bad_else.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.assertRaises(BuildError, lambda: self.engine.build(source, output_dir=self.temp_dir.name))
     
     def test_undefined_macro(self):
         source = os.path.join(RESOURCE_DIR, "source/bad_macro.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.assertRaises(BuildError, lambda: self.engine.build(source, output_dir=self.temp_dir.name))
     
     def test_undef(self):
-        source = os.path.join(RESOURCE_DIR, "source/undef.md")
-        ref = os.path.join(RESOURCE_DIR, "expected/undef.md")
+        self._build_test(
+            "source/undef.md",
+            "expected/undef.md")
+
+    def test_qr(self):
+        source = os.path.join(RESOURCE_DIR, "source/qr.md")
         output = os.path.join(self.temp_dir.name, "index.txt")
 
         self.engine.build(source, output_dir=self.temp_dir.name)
 
-        _cmp_files(ref, output)
+        with open(output, "r") as f:
+            txt = f.read().strip()
+            assert txt.startswith("<img src=\"data:image/png;base64,") and txt.endswith(">")
     
     def test_frontmatter_simple(self):
-        source = os.path.join(RESOURCE_DIR, "source/frontmatter/basic.md")
-        output = os.path.join(self.temp_dir.name, "index.txt")
-        ref = os.path.join(RESOURCE_DIR, "expected/empty.md")
-
-        self.engine.build(source, output_dir=self.temp_dir.name)
-
+        self._build_test(
+            "source/frontmatter/basic.md",
+            "expected/empty.md")
         assert self.engine.metadata.title == "t"
-        _cmp_files(ref, output)
+
+    def test_pragma_nest(self):
+        self._build_test(
+            "source/pragma/nest.md",
+            "expected/pragma/nest.md")
+
+    def test_pragma_nest_include(self):
+        self._build_test(
+            "source/pragma/nest_include.md",
+            "expected/pragma/nest_include.md")
+
+    def test_pragma_once_include(self):
+        self._build_test(
+            "source/pragma/once_include.md",
+            "expected/pragma/once.md")
+
