@@ -158,7 +158,7 @@ class TestEngine(unittest.TestCase):
 
         _cmp_files(ref, output)
     
-    def test_yaml(self):
+    def test_frontmatter_simple(self):
         source = os.path.join(RESOURCE_DIR, "source/frontmatter/basic.md")
         output = os.path.join(self.temp_dir.name, "index.txt")
         ref = os.path.join(RESOURCE_DIR, "expected/empty.md")
