@@ -9,21 +9,45 @@ import html
 import sys
 import os
 import re
+from dataclasses import dataclass
 
-#import yaml
+import yaml
 
-from . import utils
-from .utils import str_escape, REGEX_ESCAPE_CHAR, PAGE_HEADER_SEPARATOR, REGEX_VARIABLE_CHAR, VARIABLE_FORMAT_SEPARATOR, VARIABLE_CHAR, REGEX_MACRO_CHAR, MACRO_CHAR, ESCAPE_CHAR, DIRECTIVE_CHAR, REGEX_IDENTIFIER, MACRO_ARG_SEPARATOR
+from . import utils, renderer_types
+from .utils import str_escape, REGEX_ESCAPE_CHAR, FRONTMATTER_SEPARATOR, REGEX_VARIABLE_CHAR, VARIABLE_FORMAT_SEPARATOR, VARIABLE_CHAR, REGEX_MACRO_CHAR, MACRO_CHAR, ESCAPE_CHAR, DIRECTIVE_CHAR, REGEX_IDENTIFIER, MACRO_ARG_SEPARATOR
 from .log import log_debug, log_warning, log_error, log_directive, log_info
 from .structures import Macro
 from .errors import YapTeXError, BuildError, BuildFileNotFoundError, MalformedError
 from .directives import *
-from . import expressions
+from .renderers import Renderer, RendererConfig
+
+# cfg order: file, cmd
 
 PER_LINE_VERBOSITY = False
+OUTPUT_FILENAME = "index.txt"
 
 _variable_pattern = rf'{REGEX_VARIABLE_CHAR}(({REGEX_IDENTIFIER})|{{({REGEX_IDENTIFIER})(?:{VARIABLE_FORMAT_SEPARATOR}([a-z]+))?}})'
 _macro_pattern = rf'{REGEX_MACRO_CHAR}({REGEX_IDENTIFIER})(\(\s*.+\s*({MACRO_ARG_SEPARATOR}\s*.+\s*)*\))?'
+
+@dataclass
+class Metadata:
+    title: str = None
+    subtitle: str = None
+    #status: str = None
+    description: str = None
+    template: str = None
+    #icon: str = None
+    author: dict[str, str] = None # /s
+    date: datetime = None # created, updated
+    output: RendererConfig = None
+
+    tags: list[str] = None
+    keywords: list[str] = None
+    categories: list[str] = None
+
+    params: dict[str, str] = None
+
+    stylelist: list[str] = None
 
 class BuildEngine:
     """main machinery"""
@@ -33,6 +57,7 @@ class BuildEngine:
         self.path_dir_resource: str = os.path.join(os.path.dirname(__file__), "res")
 
         self.directives: list[Directive] = [
+            PragmaDirective(),
             IncludeDirective(),
 
             RegionDirective(),
@@ -56,6 +81,8 @@ class BuildEngine:
 
             LineDirective(),
             EmbedDirective(),
+
+            QrDirective(),
         ]
         self.directives_map: OrderedDict[str, Directive] = None
         def build_directives_map():
@@ -69,22 +96,20 @@ class BuildEngine:
             self.directives_map = OrderedDict(sorted(self.directives_map.items(), key=lambda item:  item[0], reverse=True))
         build_directives_map()
 
+        self.fileset: set[str] = set()
         self.filestack: list[str] = []
         self.sectionstack: list[str] = []
-        self.section_counters: list[int] = [1]
         self.macros: dict[str, Macro] = {
             "sizeof": Macro(params=[None], body=None, action=lambda args, engine: str(len(args[0]))),
             #"calc": Macro(params=[None], body=None, action=lambda args, engine: raise NotImplementedError),
         }
         dtnow = datetime.now()
         self.variables: dict[str, str | Callable] = {
-            "_YEAR_": str(dtnow.year),
-            "_MONTH_": str(dtnow.month),
-            "_DAY_": str(dtnow.day),
             "__FILE__": lambda: self.current_file_alias or self.current_file,
             "__LINE__": lambda: str(self.current_file_line_number),
             "__TIME__": str(dtnow.time()),
             "__DATE__": str(dtnow.date()),
+            "__TIMESTAMP__": str(dtnow.timestamp()),
         }
 
         self.output: TextIOWrapper = None
@@ -105,7 +130,17 @@ class BuildEngine:
             "l": str.lower,
             "u": str.upper,
             "t": str.title,
+            # TODO: padr (>), padl(<), padc(^), -
         }
+
+        self.metadata: Metadata = None
+        self.metadata.stylelist = []
+
+        self.variable_ignore: list[str] = []
+        self.heading_counters: list[int] = [None] * 6
+        self.heading_offset: int = 0
+
+        self.last_heading_level = 0
 
     def configure(self, pedantic: bool = None):
         """sigh"""
@@ -131,7 +166,7 @@ class BuildEngine:
         self.path_dir_source = os.path.dirname(source_file) if os.path.isfile(source_file) else os.getcwd()
         self.path_dir_output = output_dir
 
-        out_file = os.path.join(self.path_dir_output, "index.md")
+        out_file = os.path.join(self.path_dir_output, OUTPUT_FILENAME)
 
         with open(out_file, mode='w', encoding="utf8") as file:
             try:
@@ -148,7 +183,7 @@ class BuildEngine:
         return out_file
 
     # handle all stuff on line
-    def process_line(self, line):
+    def process_line(self, line) -> str:
         """just processes a line"""
 
         assert line is not None
@@ -158,9 +193,9 @@ class BuildEngine:
         # pedantic
         if re.match(r'^#+ ', line):
             self.pedantic_log_file("detected fixed header")
-
-        if line.startswith(DIRECTIVE_CHAR):
+        elif line.startswith(DIRECTIVE_CHAR):
             return self.handle_directive(line)
+        
         # directive char escaping
         if line.startswith(f"{ESCAPE_CHAR}{DIRECTIVE_CHAR}"):
             line = line.removeprefix(ESCAPE_CHAR)
@@ -177,6 +212,37 @@ class BuildEngine:
         if re.match(rf'^{REGEX_ESCAPE_CHAR}-(#+) ', line):
             line = line.removeprefix(ESCAPE_CHAR)
 
+        # header correction
+        if m := re.match(r'^(#+)\s(.*)', line):
+            level = len(m.group(1))
+            heading = m.group(2)
+
+            # level warn
+            if level - self.last_heading_level > 1:
+                self.pedantic_log_file("heading level skipped")
+
+            self.last_heading_level = level
+
+            # offset
+            if self.heading_offset:
+                line = "#" * (level + self.heading_offset) + f" {heading}\n"
+            
+            assert level <= 6, "too deep"
+
+            # counters
+            # zero out subs
+            for i, e in list(enumerate(self.heading_counters))[level:]:
+                if e is not None:
+                    self.heading_counters[i] = 0
+
+            if self.heading_counters[level-1] is not None:
+                self.heading_counters[level-1] += 1
+            
+            if self.heading_counters[level-1] is not None:
+                numbers = ".".join([str(n) for n in self.heading_counters[:level] if n is not None])
+                if numbers:
+                    line = "#" * level + f" {numbers}&nbsp;&nbsp;&nbsp;<strong>{heading}</strong>\n"
+
         return line
 
     # execute a directive
@@ -192,9 +258,8 @@ class BuildEngine:
             directive = self.directives_map[directive_key]
             directive.handle(line.removeprefix(DIRECTIVE_CHAR), self)
             return ""
-
-        # possible header, only if regions are not used
-        if not line.startswith(f"{DIRECTIVE_CHAR} "):
+        
+        else:
             self.pedantic_log_file("unreadable directive")
 
         return line
@@ -203,7 +268,8 @@ class BuildEngine:
     def process_stream(self, readable: TextIOWrapper):
         """works on stream"""
 
-        last_input = self.input
+        prev_input = self.input
+        prev_heading_offset = self.heading_offset
         self.input = readable
 
         first_line = True
@@ -220,18 +286,17 @@ class BuildEngine:
             if first_line:
                 first_line = False
 
-                if line.startswith(PAGE_HEADER_SEPARATOR):
+                if line.startswith(FRONTMATTER_SEPARATOR):
                     self.log_debug("page header started")
                     reading_page_header = True
                     continue # skip this line
 
             # header eating
             if reading_page_header == True:
-                if line.startswith(PAGE_HEADER_SEPARATOR):
+                if line.startswith(FRONTMATTER_SEPARATOR):
                     reading_page_header = False
                     self.log_debug("parsing page header")
-                    #print(yaml.safe_load(page_header_string))
-                    raise NotImplementedError
+                    self.handle_frontmatter(page_header_string)
                     continue # skip this line
                 page_header_string += line # eat
                 continue
@@ -241,13 +306,18 @@ class BuildEngine:
         if last_line is not None and not last_line.endswith("\n"):
             self.pedantic_log_file("no new line at the end of file")
 
-        self.input = last_input
+        self._stream_boundary_reset()
+
+        self.heading_offset = prev_heading_offset
+        self.input = prev_input
 
     # opens a file and processes it
     def process_file(self, filepath):
         """processes stream of give file path"""
 
         self.log_info(f"processing '{filepath}'")
+
+        initial_sections_count = len(self.sectionstack)
 
         if filepath == "-":
             sys.stdin.reconfigure(encoding='utf8')
@@ -269,19 +339,21 @@ class BuildEngine:
             self.current_file = last_file
             self.current_file_line_number = last_line
             self.filestack.pop()
+            self.fileset.add(filepath)
+
+        if len(self.sectionstack) != initial_sections_count:
+            self.log_warning(f"unended sections: {", ".join(f"'{s}'" for s in self.sectionstack)}")
 
     # reads a line from current file
     def consume(self) -> Generator[str, None, None]:
         """\"nom nom\", *consumes line cutely*"""
-        initial_sections_count = len(self.sectionstack)
+        
         self.current_file_line_number = 0
+        # TODO: multiline fetch
         while line := self.input.readline():
             self.current_file_line_number += 1
             self.log_line("reading: " + repr(line))
             yield line
-        else:
-            if len(self.sectionstack) != initial_sections_count:
-                self.log_warning(f"unended sections: {", ".join(f"'{s}'" for s in self.sectionstack)} (ignore this if in macro)")
 
         self.current_file_line_number = None
         return None
@@ -314,17 +386,22 @@ class BuildEngine:
 
         def place_variable(match):
             variable_name = match.group(2) or match.group(3)
+
+            # ignore case
+            if variable_name in self.variable_ignore:
+                self.log_debug("variable '{variable_name}' ignored")
+                return match.group()
+            
             modifier = match.group(4)
 
             self.log_debug(f"handle variable '{variable_name}'{f" (format: {modifier})" if modifier else ""}")
 
             if variable_name not in vrbls:
-                self.log_debug(f"variable '{variable_name}' is not defined")
-                return match.group()
+                raise BuildError(f"variable '{variable_name}' is not defined")
 
             value = vrbls[variable_name]
             if callable(value):
-                self.log_debug("called variable '{variable_name}'")
+                self.log_debug("prop variable '{variable_name}'")
                 value = value()
 
             if modifier:
@@ -339,9 +416,6 @@ class BuildEngine:
         
         # escaping variable
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({_variable_pattern})', r'\1', result)
-
-        if VARIABLE_CHAR in result:
-            self.log_file_warning("scareware: unresolved variable?")
 
         return result
 
@@ -376,10 +450,12 @@ class BuildEngine:
                         assert body is None, "unusable body"
                         body = action(args, self)
                     elif body is not None:
+                        to_pop = self.push_variable_ignore(list(self.variables.keys()))
                         body = self.handle_variables(body, dict(zip(m.params, args)))
+                        self.pop_variable_ignore(to_pop)
                     else:
                         assert False, "useless macro"
-                    
+
                 processed = ""
                 for body_line in body.splitlines(keepends=True):
                     processed += self.process_line(body_line)
@@ -387,7 +463,7 @@ class BuildEngine:
                 return processed
                 
             except:
-                self.log_file_warning(f"during '{macro_name}' macro expansion an error occurred")
+                self.log_file_error(f"during '{macro_name}' macro expansion an error occurred")
                 raise
 
         # TODO: kwargs
@@ -398,12 +474,31 @@ class BuildEngine:
         # escaping macros
         result = re.sub(rf'{REGEX_ESCAPE_CHAR}({_macro_pattern})', r'\1', result)
 
-        if MACRO_CHAR in result:
-            self.log_file_warning(f"scareware: unresolved macro?")
-
         return result
 
-    # assets
+    def handle_frontmatter(self, page_header: str):
+        yaml_data = yaml.safe_load(page_header)
+        self.metadata = Metadata()
+        self.metadata.title = yaml_data.get("title")
+        self.metadata.author = yaml_data.get("author")
+        if "output" in yaml_data:
+            assert len(yaml_data["output"]) == 1
+            key = list(yaml_data["output"].keys())[0]
+            assert key.endswith("_document")
+            rtype = renderer_types[key.removesuffix("_document")]
+            self.metadata.output = rtype.parse_config(yaml_data["output"][key])
+
+    # TODO: retarded
+    def push_variable_ignore(self, ignore: list[str]) -> int:
+        self.variable_ignore.extend(ignore)
+        return len(ignore)
+
+    def pop_variable_ignore(self, count: int) -> list[str]:
+        result = self.variable_ignore[-count:]
+        self.variable_ignore = self.variable_ignore[:-count]
+        return result
+
+    # asserts
 
     def assert_match(self, m):
         """custom assert thingy"""
@@ -474,3 +569,6 @@ class BuildEngine:
     def pedantic_log_file(self, msg: str):
         """engine log"""
         self.pedantic_log(self._format_file_msg(msg))
+
+    def _stream_boundary_reset(self):
+        pass

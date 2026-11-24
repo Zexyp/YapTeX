@@ -36,16 +36,17 @@ class DefineDirective(Directive):
 
         def eat_macro():
             for body_line in engine.consume():
-                # allow leading spaces
-                # FIXME: handle better, edge cases are evil
-                if body_line.startswith(ESCAPE_CHAR):
-                    body_line = body_line.removeprefix(ESCAPE_CHAR).rstrip()
-                else:
-                    body_line = body_line.strip()
-
+                body_line = body_line.rstrip()
                 # consume line continuation
                 if continue_next_line := body_line.endswith(MACRO_LINE_CONTINUE):
                     body_line = body_line.removesuffix(MACRO_LINE_CONTINUE)
+
+                # allow leading spaces
+                # FIXME: handle better, edge cases are evil
+                if body_line.startswith(ESCAPE_CHAR):
+                    body_line = body_line.removeprefix(ESCAPE_CHAR)
+                else:
+                    body_line = body_line.lstrip()
 
                 mac.body += f"\n{body_line}"
 

@@ -56,9 +56,9 @@ def download(family: str):
     names.sort(key=lambda x: len(x))
 
     src_regular = next(iter([n for n in names if "regular" in n.lower()]))
-    src_bolditalic = next(iter([n for n in names if "bolditalic" in n.lower()])) or src_regular
-    src_italic = next(iter([n for n in names if "italic" in n.lower()])) or src_regular
-    src_bold = next(iter([n for n in names if "bold" in n.lower()])) or src_regular
+    src_bolditalic = next(iter([n for n in names if "bolditalic" in n.lower()]), src_regular)
+    src_italic = next(iter([n for n in names if "italic" in n.lower()]), src_regular)
+    src_bold = next(iter([n for n in names if "bold" in n.lower()]), src_regular)
 
     log_debug(f"regular:    '{src_regular}'")
     log_debug(f"italic:     '{src_italic}'")

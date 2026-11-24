@@ -1,6 +1,7 @@
 """welcome to the land of useless docstrings"""
 
 import re
+import os
 import urllib.parse
 
 # FIXME: dynheader char
@@ -13,7 +14,7 @@ MACRO_CHAR: str = '?'
 MACRO_ARG_SEPARATOR: str = ';'
 MACRO_LINE_CONTINUE = ESCAPE_CHAR
 DECIMAL_SEPARATOR: str = '.'
-PAGE_HEADER_SEPARATOR = "---"
+FRONTMATTER_SEPARATOR = "---"
 
 REGEX_IDENTIFIER: str = r'[a-zA-Z_][a-zA-Z0-9_]*'
 REGEX_NUMBER_INT: str = r'[-+]?\d+'
@@ -26,6 +27,14 @@ REGEX_GROUP_QUOTED: str = re.escape(QUOTE_CHAR) + r'((?:' + re.escape(ESCAPE_CHA
 REGEX_MACRO_ARG_SEPARATOR: str = re.escape(MACRO_ARG_SEPARATOR)
 REGEX_ESCAPE_CHAR = re.escape(ESCAPE_CHAR)
 
+UNESCAPE_MAP = {
+    "\\": "\\",
+    "\"": "\"",
+    "n": "\n",
+}
+ESCAPE_MAP = {v: k for k, v in UNESCAPE_MAP.items()}
+
+
 def str_escape(value: str) -> str:
     """escape"""
     return value.replace("\"", f"{ESCAPE_CHAR}\"")
@@ -33,6 +42,15 @@ def str_escape(value: str) -> str:
 def str_unescape(value: str) -> str:
     """unecape"""
     return value.replace(f"{ESCAPE_CHAR}\"", "\"")
+
+def str_escape(value: str) -> str:
+    srt = sorted(ESCAPE_MAP.keys(), key=lambda c: c != ESCAPE_CHAR)
+    pattern = re.compile("|".join(re.escape(char) for char in srt))
+    return pattern.sub(lambda m: f"{ESCAPE_CHAR}{ESCAPE_MAP[m.group(0)]}", value)
+
+def str_unescape(value: str) -> str:
+    pattern = re.compile(re.escape(ESCAPE_CHAR) + r"(.)")  
+    return pattern.sub(lambda m: UNESCAPE_MAP.get(m.group(1), m.group(0)), value)
 
 def remove_one_of_prefixes(value, prefixes):
     """remove one of the prefixes"""
@@ -56,3 +74,7 @@ def slugify(string: str) -> str:
     slug = re.sub(r"^-+", "", slug) # remove leading -
     slug = re.sub(r"-+$", "", slug) # remove trailing -
     return urllib.parse.quote(slug, safe="")
+
+def is_file_of_dir(target, directory):
+    assert os.path.isabs(target) and os.path.isabs(directory)
+    return target != directory and os.path.commonpath([target, directory]) == directory

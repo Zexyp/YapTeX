@@ -2,23 +2,39 @@
 
 import os
 import platform
+import io
+import html
 
 from xhtml2pdf import pisa
 from xhtml2pdf.tags import pisaTagPDFTOC
 
 from ..errors import RenderingError
 from ..log import log_debug
-from . import Renderer
+from . import Renderer, RendererConfig, _WritingParser
 from .html import HtmlRenderer, HTML_ENCODING
 
+# TODO: converting parser, name is treated as id attribute
+
 # ! monkey patch !
+# TODO: add patch for macos
 if platform.system() == "Windows":
     log_debug("monkey patching")
     from xhtml2pdf.files import pisaFileObject
     pisaFileObject.getNamedFile = lambda self: self.uri
 
+class _AncorAddingParser(_WritingParser):
+    def handle_starttag(self, tag, attrs):
+        if "id" in (dattrs := dict(attrs)):
+            self.out.write(f"<a name=\"{html.encode(dattrs["id"])}\"></a>")
+
+        super().handle_starttag(tag, attrs)
+
 class PdfRenderer(Renderer):
     """renderer for pdf"""
+
+    @staticmethod
+    def parse_config(data) -> RendererConfig:
+        raise NotImplementedError
 
     identifier = "pdf"
     depends_on = HtmlRenderer
@@ -31,11 +47,11 @@ class PdfRenderer(Renderer):
 
             def link_callback(uri, basepath):
                 if uri.startswith("data:"):
-                    raise NotImplementedError
+                    return uri
                 if os.path.isabs(uri):
                     raise NotImplementedError
 
-                log_debug(f"resolving '{uri}' ('{basepath}')")
+                self.log_debug(f"resolving '{uri}' ('{basepath}')")
 
                 def dir_of_file(path):
                     # macos platform fuckery
@@ -48,12 +64,19 @@ class PdfRenderer(Renderer):
                 else:
                     result = os.path.join(dir_of_file(os.path.join(filedir, basepath)), uri)
                                 
-                log_debug(f"resulting '{result}'")
+                self.log_debug(f"resulting '{result}'")
                 return result
 
-            pisa_status = pisa.CreatePDF(html_file.read(), path=filepath, dest=pdf_file, link_callback=link_callback, encoding=HTML_ENCODING)
+            with io.StringIO() as buffer:
+                # TODO: stupid, not streaming
+                parser = _AncorAddingParser(buffer)
+                for line in html_file:
+                    parser.feed(line)
+                # finally use the buffer
+                buffer.seek(0)
+                pisa_status = pisa.CreatePDF(buffer.read(), path=filepath, dest=pdf_file, link_callback=link_callback, encoding=HTML_ENCODING)
 
         if pisa_status.err:
             raise RenderingError("pisa error")
 
-        return pdf_file
+        return pdf_filepath

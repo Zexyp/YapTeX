@@ -3,8 +3,6 @@
 class YapTeXError(Exception):
     """uh oh"""
 
-YapError = YapTeXError
-
 class BuildError(YapTeXError):
     """user error"""
 
@@ -12,7 +10,9 @@ class MalformedError(BuildError):
     """regex spaghetti not suffiecently satisfied"""
 
 class BuildFileNotFoundError(BuildError, FileNotFoundError):
-    """did the app or you got lost?"""
+    """was it you or the app that got lost?"""
 
-class RenderingError(YapError):
+class RenderingError(YapTeXError):
     """spaghetti failed"""
+
+YapError = YapTeXError
