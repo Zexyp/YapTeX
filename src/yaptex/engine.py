@@ -134,7 +134,6 @@ class BuildEngine:
         }
 
         self.metadata: Metadata = None
-        self.metadata.stylelist = []
 
         self.variable_ignore: list[str] = []
         self.heading_counters: list[int] = [None] * 6
