@@ -161,7 +161,7 @@ class PragmaDirective(ArgDirective):
         args.engine.heading_offset += 1
 
     def _func_once(self, args: ArgDirective.BaseArgs):
-        if args.engine.current_filegit in args.engine.fileset:
+        if args.engine.current_file in args.engine.fileset:
             # depleet current stream
             for l in args.engine.consume():
                 pass
