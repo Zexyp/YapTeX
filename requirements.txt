@@ -6,3 +6,4 @@ Pygments
 lxml
 pyyaml
 mdit-py-plugins
+qrcode
